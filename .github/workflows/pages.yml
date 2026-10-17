@@ -33,6 +33,8 @@ jobs:
         run: python tests/mobile_smoke.py
       - name: Verify Google PKCE and remembered sessions with synthetic fixtures
         run: python tests/google_smoke.py
+      - name: Verify complete scores and responsive reflow
+        run: python tests/score_smoke.py
       - name: Upload browser screenshots (synthetic data only)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

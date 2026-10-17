@@ -23,9 +23,6 @@ new MutationObserver(sync).observe(document.querySelector('#player'),{attributes
 new MutationObserver(sync).observe(document.querySelector('#shell'),{attributes:true,attributeFilter:['hidden']});
 mobile.addEventListener('change',()=>{if(!mobile.matches)close();sync();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')close();if(e.key!=='Tab'||!wasOpen)return;const nodes=[...sidebar.querySelectorAll('a,button,select,input')].filter(n=>!n.disabled&&n.getClientRects().length);const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
-function addZoom(){document.querySelectorAll('.score:not([data-zoom-ready])').forEach(score=>{
- score.dataset.zoomReady='true';const tools=document.createElement('div');tools.className='score-tools';const button=document.createElement('button');button.type='button';button.textContent='Крупные ноты';button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{const zoom=score.classList.toggle('is-zoomed');button.setAttribute('aria-pressed',String(zoom));button.textContent=zoom?'Ноты по ширине':'Крупные ноты';});tools.append(button);score.before(tools);
-});}
-new MutationObserver(addZoom).observe(document.querySelector('#content'),{childList:true,subtree:true});sync();
+sync();
 // Let a user use an already received email without consuming another mail request.
 const existingEmail=document.createElement('button');existingEmail.type='button';existingEmail.textContent='Уже есть письмо или код';existingEmail.className='existing-email';existingEmail.addEventListener('click',()=>{document.querySelector('#code-form').hidden=false;document.querySelector('#code').focus();});document.querySelector('#login-form').after(existingEmail);
