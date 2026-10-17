@@ -3,7 +3,7 @@ import asyncio, functools, json, threading, time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, expect
 ROOT=Path(__file__).resolve().parents[1]
 PUBLIC=ROOT/'dist' if (ROOT/'dist').is_dir() else ROOT/'site'
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -48,7 +48,7 @@ async def scenario(engine,width):
     await page.locator('#google-signin:not([disabled])').wait_for()
     assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     await page.locator('#google-signin').click()
-    await page.wait_for_function("document.querySelector('#google-status').textContent.includes('ещё не включён')")
+    await expect(page.locator('#google-status')).to_contain_text('ещё не включён')
     assert page.url==BASE and state['authorize'] is None
     out=ROOT/'ui-results';out.mkdir(exist_ok=True)
     await page.screenshot(path=str(out/f'google-login-{engine.name}-{width}.png'),full_page=True)
@@ -77,7 +77,7 @@ async def scenario(engine,width):
     await page.locator('#google-signin').click()
     await page.wait_for_url(PROJECT+'/auth/v1/authorize*')
     await page.goto(BASE+'?code=synthetic-code')
-    await page.wait_for_function("document.querySelector('#login-status').textContent.includes('не имеет доступа')")
+    await expect(page.locator('#login-status')).to_contain_text('не имеет доступа')
     assert await page.locator('#shell').is_hidden()
     assert 'synthetic-refresh' not in await page.evaluate('JSON.stringify(localStorage)')
     assert state['mail']==0
