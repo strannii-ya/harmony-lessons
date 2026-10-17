@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#191815"><meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<title>Гармония — личный учебник</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">К содержанию</a>
+<section id="gate" class="gate">
+ <div class="gate-art" aria-hidden="true"><div class="motif"><span></span><span></span><span></span><span></span><span></span><b>♮</b></div><div class="art-caption">СЛЫШАТЬ. ПОНИМАТЬ. ИГРАТЬ.</div></div>
+ <div class="gate-copy"><div class="brand"><span class="brandmark">h.</span><div>Гармония<small>ЛИЧНЫЙ УЧЕБНИК</small></div></div>
+ <div class="eyebrow">ТВОЁ ПРОСТРАНСТВО ДЛЯ МУЗЫКИ</div><h1>От аккордов —<br>к пониманию.</h1><p class="gate-lead">Уроки, нотная запись и практика за инструментом.<br>В твоём темпе. В твоей тональности.</p>
+ <form id="login-form"><label for="email">Электронная почта</label><input id="email" type="email" autocomplete="email" placeholder="Твой email" required maxlength="254"><button class="primary" id="send" type="submit">Получить письмо для входа <span>→</span></button></form>
+ <form id="code-form" hidden><label for="code">Одноразовый код из письма</label><div class="inline"><input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Код" minlength="6" maxlength="8" required><button class="primary" type="submit">Войти</button></div></form>
+ <p id="login-status" class="notice" role="status">Проверяю подключение…</p><p class="privacy">⌑ Только личный доступ. Материалы загружаются после входа.</p>
+ </div>
+</section>
+<div id="shell" class="shell" hidden>
+ <aside id="sidebar"><a class="brand" href="#course"><span class="brandmark">h.</span><div>Гармония<small>ЛИЧНЫЙ УЧЕБНИК</small></div></a><nav class="primary-nav" aria-label="Разделы"><button data-view="course">▦ <span>Мой курс</span><b id="lesson-count">23</b></button><button data-view="library">♫ <span>Последовательности</span></button><button data-view="favorites">☆ <span>Избранное</span></button></nav><div class="sidebar-label">ПРОГРАММА КУРСА</div><nav id="lesson-nav" aria-label="Уроки"></nav><div class="sidebar-bottom"><span class="tiny-dot"></span><span>Личное пространство</span><button id="signout" title="Выйти" aria-label="Выйти">↗</button></div></aside>
+ <div class="workspace"><header class="topbar"><button id="menu" aria-label="Открыть навигацию">☰</button><div id="breadcrumb">Мой курс</div><div class="top-actions"><span class="quiet-label">ФОРТЕПИАНО / ГАРМОНИЯ</span><button id="focus" title="Режим занятия">Режим занятия ↗</button></div></header><main id="content" tabindex="-1"></main><footer class="page-footer">Гармония · Личный учебник <span>Одна тема. Много способов услышать.</span></footer></div>
+ <section id="player" class="player" aria-label="Проигрыватель" hidden><div class="player-title"><span class="tiny-dot"></span><div id="playing-title"></div></div><button id="play-toggle" class="play-circle" aria-label="Играть">▶</button><label class="tempo-label">Темп <input id="tempo" type="range" min="36" max="160" value="72"><output id="tempo-value">72</output></label><label class="compact">Руки<select id="hand"><option value="both">Обе</option><option value="left">Бас</option><option value="right">Правая</option></select></label><button id="loop" aria-pressed="false" title="Повторять">↻</button><button id="midi" title="Экспортировать MIDI">MIDI ↓</button><button id="close-player" aria-label="Остановить и закрыть">×</button></section>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+<noscript>Для нотной записи и проигрывания требуется JavaScript. Личные материалы не включены в эту страницу.</noscript>
+</body></html>

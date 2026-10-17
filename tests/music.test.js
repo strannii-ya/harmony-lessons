@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {parseChord,compile,noteName,midiBytes,transposeKey,keyPitches,KEYS} from '../site/music.js';
+const names=c=>c.tones.map(noteName);
+test('minor leading tone is G-sharp, not A-flat',()=>assert.deepEqual(names(parseChord('vii°7','A','minor')),['G♯','B','D','F']));
+test('minor ii half diminished',()=>assert.deepEqual(names(parseChord('iiø7','A','minor')),['B','D','F','A']));
+test('borrowed chord spelled correctly',()=>assert.deepEqual(names(parseChord('♭VI','C')),['A♭','C','E♭']));
+test('D-sharp as leading tone in E minor',()=>assert.deepEqual(names(parseChord('V7','E','minor')),['B','D♯','F♯','A']));
+test('raised leading tone in F sharp minor',()=>assert.deepEqual(names(parseChord('vii°7','F#','minor')),['E♯','G♯','B','D']));
+test('inversion controls actual bass',()=>{assert.equal(noteName(parseChord('V⁴₂').bass),'F');assert.equal(noteName(parseChord('ii⁶₅').bass),'F');assert.equal(noteName(parseChord('vii°⁴₃').bass),'F');});
+test('K64 is minor in minor and keeps scale degree 5 in bass',()=>{const c=parseChord('K64','A','minor');assert.deepEqual(names(c),['A','C','E']);assert.equal(noteName(c.bass),'E');});
+test('secondary dominant is not an inversion',()=>assert.deepEqual(names(parseChord('V7/ii','C')),['A','C♯','E','G']));
+test('no silent fallback for invalid input',()=>assert.throws(()=>parseChord('banana')));
+test('all standard keys transpose with valid pitch spellings',()=>{for(const mode of ['major','minor'])for(const k of KEYS[mode]){const s=compile(mode==='minor'?['i','♭VI','iiø7','V7','i']:['I','IVmaj7','ii7','V7','I'],{tonic:k,mode,pattern:'arpeggio'});assert.ok(s.events.every(e=>e.notes.every(n=>n.midi>=0&&n.midi<=127&&Math.abs(n.alter)<=2)));assert.equal(transposeKey(transposeKey(k,mode,1),mode,-1),k);}});
+test('score and midi use identical event pitch model',()=>{const s=compile(['I','V7'],{pattern:'arpeggio'});assert.equal(s.events.length,18);assert.equal(s.totalBeats,8);const m=midiBytes(s);assert.equal(String.fromCharCode(...m.slice(0,4)),'MThd');assert.ok(m.includes(0x91));assert.ok(m.includes(0x90));});
+test('pedal overrides roots without altering upper structure',()=>{const s=compile([{symbol:'I',bass:'5'}, {symbol:'IV',bass:'5'}, {symbol:'I',bass:'1'}]);assert.deepEqual(s.bars.map(b=>noteName(b.bass)),['G','G','C']);assert.deepEqual(names(s.bars[1]),['F','A','C']);});
+test('key signature covers every letter once',()=>{for(const k of KEYS.minor)assert.equal(new Set(keyPitches(k,'minor').map(n=>n.letter)).size,7);});
+test('duration is checked',()=>assert.throws(()=>compile([{symbol:'I',beats:-4}])));
+test('modulation may change key without changing the top-level transposition',()=>{const a=compile(['I',{symbol:'V7',offset:7},{symbol:'I',offset:7}]);assert.deepEqual(names(a.bars[1]),['D','F♯','A','C']);const b=compile(['I',{symbol:'V7',offset:7}],{tonic:'D'});assert.deepEqual(names(b.bars[1]),['E','G♯','B','D']);});
