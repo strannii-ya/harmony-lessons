@@ -1,13 +1,12 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#191815"><meta name="referrer" content="no-referrer">
-<meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#191815"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Гармония — личный учебник</title>
-<link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
-<script type="module" src="./app.js"></script>
+<link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css">
+<script type="module" src="./app.js"></script><script type="module" src="./mobile.js"></script>
 </head>
 <body>
 <a class="skip" href="#content">К содержанию</a>
@@ -16,8 +15,8 @@
  <div class="gate-copy"><div class="brand"><span class="brandmark">h.</span><div>Гармония<small>ЛИЧНЫЙ УЧЕБНИК</small></div></div>
  <div class="eyebrow">ТВОЁ ПРОСТРАНСТВО ДЛЯ МУЗЫКИ</div><h1>От аккордов —<br>к пониманию.</h1><p class="gate-lead">Уроки, нотная запись и практика за инструментом.<br>В твоём темпе. В твоей тональности.</p>
  <form id="login-form"><label for="email">Электронная почта</label><input id="email" type="email" autocomplete="email" placeholder="Твой email" required maxlength="254"><button class="primary" id="send" type="submit">Получить письмо для входа <span>→</span></button></form>
- <form id="code-form" hidden><label for="code">Одноразовый код из письма</label><div class="inline"><input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Код" minlength="6" maxlength="8" required><button class="primary" type="submit">Войти</button></div></form>
- <p id="login-status" class="notice" role="status">Проверяю подключение…</p><p class="privacy">⌑ Только личный доступ. Материалы загружаются после входа.</p>
+ <form id="code-form" hidden><label for="code">Код или ссылка из письма</label><div class="inline"><input id="code" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Код или скопированная ссылка" minlength="6" maxlength="4096" required><button class="primary" type="submit">Войти</button></div><p class="auth-help">Если кнопка в письме не возвращает в учебник, скопируй её ссылку и вставь сюда. На телефоне зажми кнопку в письме → «Скопировать ссылку». Не отправляй код или ссылку в чат.</p></form>
+ <p id="login-status" class="notice" role="status">Проверяю подключение…</p><p class="privacy">⌑ Только личный доступ. Материалы загружаются после подтверждения почты.</p>
  </div>
 </section>
 <div id="shell" class="shell" hidden>
