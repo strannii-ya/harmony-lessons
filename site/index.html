@@ -6,6 +6,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Гармония — личный учебник</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css">
+<link rel="stylesheet" href="./google.css">
+<script type="module" src="./google.js"></script>
 <script type="module" src="./app.js"></script><script type="module" src="./mobile.js"></script>
 </head>
 <body>
@@ -14,6 +16,13 @@
  <div class="gate-art" aria-hidden="true"><div class="motif"><span></span><span></span><span></span><span></span><span></span><b>♮</b></div><div class="art-caption">СЛЫШАТЬ. ПОНИМАТЬ. ИГРАТЬ.</div></div>
  <div class="gate-copy"><div class="brand"><span class="brandmark">h.</span><div>Гармония<small>ЛИЧНЫЙ УЧЕБНИК</small></div></div>
  <div class="eyebrow">ТВОЁ ПРОСТРАНСТВО ДЛЯ МУЗЫКИ</div><h1>От аккордов —<br>к пониманию.</h1><p class="gate-lead">Уроки, нотная запись и практика за инструментом.<br>В твоём темпе. В твоей тональности.</p>
+ <section class="google-login" aria-label="Вход через Google">
+ <button id="google-signin" class="google-button" type="button" disabled aria-describedby="google-status"><svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 12.2c0-.7-.1-1.4-.2-2.1H12v3.8h5.5a4.7 4.7 0 0 1-2 3.1c-1 .6-2.2.9-3.5.9a6 6 0 1 1 4.1-10.4l2.9-2.8A10 10 0 1 0 12 22c2.7 0 5-.9 6.7-2.5 1.9-1.8 3.1-4.3 3.1-7.3Z"/></svg>Войти через Google</button>
+ <p class="google-note">Без писем и кодов. Выбери Google-аккаунт владельца учебника.</p>
+ <label class="remember-label"><input type="checkbox" id="remember">Запомнить на этом устройстве</label>
+ <p id="google-status" class="google-note" role="status" aria-live="polite"></p>
+ </section>
+ <div class="auth-divider">или резервный вход по почте</div>
  <form id="login-form"><label for="email">Электронная почта</label><input id="email" type="email" autocomplete="email" placeholder="Твой email" required maxlength="254"><button class="primary" id="send" type="submit">Получить письмо для входа <span>→</span></button></form>
  <form id="code-form" hidden><label for="code">Код или ссылка из письма</label><div class="inline"><input id="code" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Код или скопированная ссылка" minlength="6" maxlength="4096" required><button class="primary" type="submit">Войти</button></div><p class="auth-help">Если кнопка в письме не возвращает в учебник, скопируй её ссылку и вставь сюда. На телефоне зажми кнопку в письме → «Скопировать ссылку». Не отправляй код или ссылку в чат.</p></form>
  <p id="login-status" class="notice" role="status">Проверяю подключение…</p><p class="privacy">⌑ Только личный доступ. Материалы загружаются после подтверждения почты.</p>

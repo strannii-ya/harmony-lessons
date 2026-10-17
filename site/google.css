@@ -1,0 +1,11 @@
+.google-login{max-width:410px;display:grid;gap:12px;margin-bottom:25px}
+.google-button{display:flex;align-items:center;justify-content:center;gap:13px;width:100%;min-height:48px;background:#f2ede3;color:#25221c;border-color:#ded7ca;font-weight:600;letter-spacing:.1px}
+.google-button:hover{background:#fff9ef;border-color:#d6b47a}
+.google-button svg{width:20px;height:20px;flex-shrink:0}
+.google-note{font-size:12px;line-height:1.6;color:var(--muted);margin:0}
+.google-note:empty{display:none}
+.remember-label{display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.5;cursor:pointer;min-height:44px}
+.gate-copy .remember-label input{width:18px;height:18px;flex-shrink:0;accent-color:var(--accent);margin:0}
+.auth-divider{max-width:410px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;display:flex;gap:12px;align-items:center;margin:20px 0}
+.auth-divider:before,.auth-divider:after{content:'';height:1px;background:var(--line);flex:1}
+@media(max-width:600px){.google-button{font-size:16px;min-height:50px}.google-login{max-width:none}.remember-label{font-size:13px}.google-note{font-size:13px}.auth-divider{max-width:none}}

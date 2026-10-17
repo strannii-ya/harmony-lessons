@@ -31,6 +31,8 @@ jobs:
           python -m playwright install --with-deps chromium webkit > /tmp/playwright-install.log 2>&1 || { tail -80 /tmp/playwright-install.log; exit 1; }
       - name: Verify mobile and desktop interfaces with synthetic fixtures
         run: python tests/mobile_smoke.py
+      - name: Verify Google PKCE and remembered sessions with synthetic fixtures
+        run: python tests/google_smoke.py
       - name: Upload browser screenshots (synthetic data only)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
