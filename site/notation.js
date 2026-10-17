@@ -68,7 +68,7 @@ function events(root, list, positions, staff, isBass, key) {
     if(group.length>1)line(root,group[0].x+(down?-5:5),y,group.at(-1).x+(down?-5:5),y,3.4,INK);
   }
 }
-let records=new WeakMap();const roots=new Set();let observer;
+let records=new WeakMap();const roots=new Set(),pending=new Set();let observer,resizeFrame=0;
 function paint(container, score, forcedWidth) {
   const zoom=container.classList.contains('is-zoomed') && !forcedWidth;
   const actual=container.clientWidth || 800;
@@ -111,12 +111,19 @@ function paint(container, score, forcedWidth) {
 export function renderScore(container, score) {
   paint(container,score);
   if(typeof ResizeObserver!=='undefined'){
-    observer??=new ResizeObserver(entries=>{for(const {target} of entries){const r=records.get(target);if(r&&target.clientWidth>0&&Math.abs(target.clientWidth-r.width)>1)paint(target,r.score);}});
+    observer??=new ResizeObserver(entries=>{
+      for(const {target} of entries){const r=records.get(target);if(r&&target.clientWidth>0&&Math.abs(target.clientWidth-r.width)>1)pending.add(target);}
+      // SVG height changes are deferred out of the ResizeObserver delivery loop (Safari).
+      if(pending.size&&!resizeFrame)resizeFrame=requestAnimationFrame(()=>{
+        resizeFrame=0;const batch=[...pending];pending.clear();
+        for(const target of batch){const r=records.get(target);if(r&&target.isConnected&&target.clientWidth>0)paint(target,r.score);}
+      });
+    });
     observer.observe(container);
   }
 }
 /** Release private in-memory scores when changing views or signing out. */
-export function clearScores() {observer?.disconnect();roots.clear();records=new WeakMap();}
+export function clearScores() {observer?.disconnect();if(resizeFrame)cancelAnimationFrame(resizeFrame);resizeFrame=0;pending.clear();roots.clear();records=new WeakMap();}
 if(typeof window!=='undefined'){
   window.addEventListener('beforeprint',()=>{for(const root of roots){const r=records.get(root);if(r)paint(root,r.score,760);}});
   window.addEventListener('afterprint',()=>{for(const root of roots){const r=records.get(root);if(r)paint(root,r.score);}});
