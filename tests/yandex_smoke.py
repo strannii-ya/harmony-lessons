@@ -12,10 +12,16 @@ class Quiet(SimpleHTTPRequestHandler):
 server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(PUBLIC)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
 BASE=f'http://127.0.0.1:{server.server_port}/'
-# WebKit cannot synthesize 302 through Route.fulfill. Use an actual HTTP
-# response on a second local origin so both engines test a real opaque redirect.
+# WebKit cannot synthesize 302 through Route.fulfill. A second local server
+# supplies the real cross-origin redirect and its real preflight response.
 class RedirectHandler(BaseHTTPRequestHandler):
  def log_message(self,*args):pass
+ def do_OPTIONS(self):
+  self.send_response(204)
+  self.send_header('Access-Control-Allow-Origin',BASE.rstrip('/'))
+  self.send_header('Access-Control-Allow-Headers','apikey,content-type')
+  self.send_header('Access-Control-Allow-Methods','GET,OPTIONS')
+  self.send_header('Content-Length','0');self.end_headers()
  def do_GET(self):
   if urlparse(self.path).path!='/auth/v1/authorize':self.send_error(404);return
   self.send_response(302)
@@ -40,14 +46,13 @@ async def scenario(engine,width,height):
   if url==BASE+'config.json':return await route.fulfill(json={'supabaseUrl':PROJECT,'publishableKey':'sb_publishable_fixture'})
   if url.startswith(BASE):
    if path=='/':
-    # Allow just the local synthetic Auth origin in this fixture's CSP.
     html=(PUBLIC/'index.html').read_text().replace('https://*.supabase.co',PROJECT)
     return await route.fulfill(content_type='text/html',body=html)
    return await route.continue_()
   if not url.startswith(PROJECT+'/'):
    state['external']+=1
    return await route.abort()
-  if request.method=='OPTIONS':return await route.fulfill(status=204,headers=cors)
+  if request.method=='OPTIONS':return await route.continue_()
   if path.endswith('/settings'):data={'external':{'google':True}}
   elif path.endswith('/authorize'):
    query=parse_qs(urlparse(url).query);state['authorize']=query
@@ -73,7 +78,15 @@ async def scenario(engine,width,height):
   else:raise AssertionError('Unexpected endpoint: '+path)
   await route.fulfill(json=data,headers=cors)
  await context.route('**/*',respond)
- page=await context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ page=await context.new_page();errors=[];console=[]
+ page.on('pageerror',lambda e:errors.append(str(e)))
+ page.on('console',lambda msg:console.append(msg.text) if msg.type=='error' else None)
+ async def wait_authorize():
+  try:await page.wait_for_url(PROJECT+'/auth/v1/authorize*',timeout=12000)
+  except Exception:
+   print('Synthetic OAuth diagnostics:',engine.name,state,'status:',await page.locator('#google-status').text_content(),'console:',console,flush=True)
+   await page.screenshot(path=str(OUT/f'yandex-failure-{engine.name}-{width}x{height}.png'),full_page=True)
+   raise
  await page.goto(BASE,wait_until='networkidle')
  await expect(page.locator('#google-signin')).to_be_enabled();await expect(page.locator('#yandex-signin')).to_be_enabled()
  assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
@@ -82,13 +95,12 @@ async def scenario(engine,width,height):
  await expect(page.locator('#google-status')).to_contain_text('ещё не настроен')
  await expect(page.locator('#google-signin')).to_be_enabled()
  assert page.url==BASE and state['navigations']==0 and state['probes']==1
- # A missing custom provider must not interfere with the existing Google path.
- await page.locator('#google-signin').click();await page.wait_for_url(PROJECT+'/auth/v1/authorize*')
+ await page.locator('#google-signin').click();await wait_authorize()
  assert state['authorize']['provider']==['google'] and state['authorize']['scopes']==['openid email profile']
  await page.goto(BASE)
  state['enabled']=True
  await page.locator('#remember').check();await page.locator('#yandex-signin').click()
- await page.wait_for_url(PROJECT+'/auth/v1/authorize*')
+ await wait_authorize()
  assert state['authorize']['provider']==['custom:yandex']
  assert state['authorize']['scopes']==['login:email']
  assert state['authorize']['code_challenge_method']==['s256']
@@ -103,7 +115,7 @@ async def scenario(engine,width,height):
  elif width<900:await page.locator('#menu').click()
  await page.locator('#signout').click();await expect(page.locator('#gate')).to_be_visible();await expect(new_tab.locator('#gate')).to_be_visible();await new_tab.close()
  state['member']=False
- await page.locator('#yandex-signin').click();await page.wait_for_url(PROJECT+'/auth/v1/authorize*')
+ await page.locator('#yandex-signin').click();await wait_authorize()
  await page.goto(BASE+'?code=synthetic-code')
  await expect(page.locator('#login-status')).to_contain_text('не имеет доступа')
  assert await page.locator('#shell').is_hidden()
