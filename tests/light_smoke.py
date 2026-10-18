@@ -1,4 +1,4 @@
-"""Synthetic fixtures only: responsive light UI, separate reference, notation, and private theory rendering."""
+"""Synthetic fixtures: light UI, continuous VexFlow scores, reference, and private theory rendering."""
 import asyncio,functools,threading
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
@@ -22,9 +22,7 @@ async def scenario(engine,width,height,base,mode):
   elif '/rest/v1/' in path:
    name=path.rsplit('/',1)[-1];assert name in FIXTURE,path
    state['private_calls']+=1
-   if route.request.method=='POST':
-    row=route.request.post_data_json
-    state[name]=[row];data=[row]
+   if route.request.method=='POST':row=route.request.post_data_json;state[name]=[row];data=[row]
    elif route.request.method=='DELETE':state[name]=[];data=[]
    else:data=state[name] if name in state else FIXTURE[name]
   else:raise AssertionError('Unexpected live API call: '+path)
@@ -35,7 +33,8 @@ async def scenario(engine,width,height,base,mode):
  async def fits(stage):
   assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(engine.name,width,height,stage)
   for svg in await page.locator('.score-document').all():
-   assert not await svg.evaluate('svg=>{const v=svg.viewBox.baseVal;return [...svg.querySelectorAll("ellipse")].some(n=>{const b=n.getBBox();return b.x<0||b.y<0||b.x+b.width>v.width||b.y+b.height>v.height})}'),stage
+   assert await svg.get_attribute('data-renderer')=='vexflow-bravura'
+   assert not await svg.evaluate('svg=>{const v=svg.viewBox.baseVal,m=svg.getScreenCTM().inverse();return [...svg.querySelectorAll("[data-note]")].some(n=>{const b=n.getBoundingClientRect(),a=new DOMPoint(b.left,b.top).matrixTransform(m),z=new DOMPoint(b.right,b.bottom).matrixTransform(m);return a.x < -1 || a.y < -1 || z.x > v.width+1 || z.y > v.height+1})}'),stage
  async def nav(view):
   landscape=await page.evaluate('matchMedia("(orientation: landscape) and (max-height: 520px) and (max-width: 1024px)").matches')
   if landscape:await page.locator('#landscape-menu').click()
@@ -49,8 +48,8 @@ async def scenario(engine,width,height,base,mode):
   assert await page.locator('[data-zoom],[data-download],#midi').count()==0
   assert await page.locator('[data-clef=bass]').count()==0
   assert await page.evaluate('getComputedStyle(document.documentElement).colorScheme')=='light'
-  assert await page.locator('[data-duration="4"][fill=none]').count()>0
-  assert await page.locator('[data-duration="2"][fill=none]').count()>0
+  assert await page.locator('[data-duration="4"][data-hollow=true]').count()>0
+  assert await page.locator('[data-duration="2"][data-hollow=true]').count()>0
   for card,e in zip(await page.locator('.exercise').all(),FIXTURE['exercises']):
    await expect(card.locator('[data-score-bar]')).to_have_count(len(e['progression']))
    assert await card.locator('[data-play]').inner_text()==''
@@ -94,11 +93,9 @@ async def scenario(engine,width,height,base,mode):
   await page.locator('[data-key]').first.select_option('C')
   await page.screenshot(path=str(OUT/f'light-lesson-{engine.name}-{width}x{height}.png'),full_page=True)
   if mode=='engraving':
-   await nav('reference')
-   await expect(page.locator('.guide-card')).to_have_count(10)
+   await nav('reference');await expect(page.locator('.guide-card')).to_have_count(10)
    assert await page.locator('[data-score]').count()==0
-   major=page.locator('[data-chord-type=major]')
-   await major.locator('[data-inversion]').select_option('1')
+   major=page.locator('[data-chord-type=major]');await major.locator('[data-inversion]').select_option('1')
    await expect(major.locator('[data-chord-name]')).to_have_text('C/E')
    assert await major.locator('[data-note]').evaluate_all('ns=>ns.map(n=>n.dataset.note)')==['E4','G4','C5']
    dim=page.locator('[data-chord-type=diminished7]');await dim.locator('[data-inversion]').select_option('3')
@@ -124,7 +121,7 @@ async def scenario(engine,width,height,base,mode):
    await page.set_viewport_size({'width':375,'height':812})
    await expect(page.locator('.topbar')).to_be_visible();await fits('portrait again')
   assert not errors,(engine.name,width,height,errors)
-  print(f'PASS {mode} {engine.name} {width}x{height}: light UI, continuous treble score, controls, theory, playback, navigation',flush=True)
+  print(f'PASS {mode} {engine.name} {width}x{height}: light UI, engraved score, controls, theory, playback, navigation',flush=True)
  finally:await ctx.close();await browser.close()
 async def suite(mode):
  public=ROOT/'dist' if (ROOT/'dist').is_dir() else ROOT/'site'

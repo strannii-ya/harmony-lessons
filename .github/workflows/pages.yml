@@ -1,7 +1,7 @@
 name: Verify and publish harmony notebook
 on:
   push:
-    branches: [main]
+    branches: [main, engraving-vexflow]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -21,6 +21,10 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
+      - name: Install integrity-pinned vector engraving engine without lifecycle scripts
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run prepare:engraving
       - name: Test music model and public boundary
         run: npm test
       - name: Build public interface only
@@ -41,6 +45,8 @@ jobs:
         run: python tests/access_smoke.py
       - name: Verify per-card bass staves and directed bass motion
         run: python tests/bass_smoke.py
+      - name: Verify Bravura paths, pitch identity, accidentals and engraver geometry
+        run: python tests/vexflow_smoke.py
       - name: Upload browser screenshots (synthetic data only)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -89,21 +95,22 @@ jobs:
                   assert status['commit']==expected, 'Pages is still serving a different commit'
                   version=status['version']
                   html=read('?verify='+expected)
-                  assert './light.css?v='+version in html, 'Missing light theme'
-                  assert './access.css?v='+version in html, 'Missing access styles'
-                  assert 'data-view="reference"' in html, 'Missing separate reference'
-                  assert 'data-view="access"' in html, 'Missing owner access navigation'
+                  assert './light.css?v='+version in html
+                  assert './access.css?v='+version in html
+                  assert 'data-view="reference"' in html
+                  assert 'data-view="access"' in html
                   assert 'id="midi"' not in html
                   app=read('app.js?v='+version)
                   assert 'data-zoom=' not in app and 'data-download=' not in app
-                  assert 'mountAccess' in app
-                  assert 'data-bass=' in app and 'compileExercise' in app
-                  assert 'bass_offsets' in read('bass.js?v='+version)
-                  assert 'data-bass-visible' in read('notation.js?v='+version)
+                  assert 'mountAccess' in app and 'data-bass=' in app
                   assert 'invite-form' in read('access.js?v='+version)
                   assert 'listAccess' in read('api.js?v='+version)
                   assert 'data-inversion' in read('chord-guide.js?v='+version)
-                  assert 'trebleOnly:true' in read('notation.js?v='+version)
+                  notation=read('notation.js?v='+version)
+                  assert 'vexflow-bravura' in notation and 'planEngraving' in notation
+                  assert "node('ellipse'" not in notation
+                  assert 'VexFlow 4.2.5' in read('vendor/vexflow-bravura.js?v='+version)
+                  assert 'bass_offsets' in read('bass.js?v='+version)
                   print('Verified live GitHub Pages:',base)
                   print('Published commit:',status['commit'])
                   print('Published asset version:',version)
