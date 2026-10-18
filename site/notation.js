@@ -1,3 +1,4 @@
+import { CLEF_PATHS } from './notation-glyphs.js';
 import { keyPitches, noteName, KEY_RU } from './music.js';
 import { layoutScore, signature, signatureChange, sameKey, staffY } from './score-layout.js';
 const NS = 'http://www.w3.org/2000/svg', INK = '#332f28';
@@ -14,16 +15,20 @@ function text(root, x, y, value, size = 13, attrs = {}) {
   root.append(el('text', { x, y, 'font-size': size, fill: INK, 'font-family': 'Georgia, serif', ...attrs }, value));
 }
 function clef(root, x, y, bass) {
-  if (bass) {
-    root.append(el('path', { d: `M ${x+3} ${y+13} C ${x+10} ${y-2}, ${x+33} ${y+8}, ${x+20} ${y+27} Q ${x+13} ${y+36}, ${x+4} ${y+40} C ${x+26} ${y+30}, ${x+24} ${y+7}, ${x+10} ${y+10}`, fill:'none', stroke:INK, 'stroke-width':2.5 }));
-    root.append(el('circle', { cx:x+6, cy:y+14, r:4, fill:INK }));
-    [9,19].forEach(d => root.append(el('circle', { cx:x+32, cy:y+d, r:1.8, fill:INK })));
-  } else {
-    root.append(el('path', { d:`M ${x+19} ${y+55} C ${x+8} ${y+60}, ${x+8} ${y+44}, ${x+17} ${y+46} C ${x+29} ${y+50}, ${x+22} ${y+69}, ${x+16} ${y+54} L ${x+12} ${y-4} C ${x+11} ${y-19}, ${x+28} ${y-22}, ${x+22} ${y-9} C ${x+19} ${y+2}, ${x-2} ${y+13}, ${x+2} ${y+27} C ${x+5} ${y+42}, ${x+33} ${y+37}, ${x+29} ${y+24} C ${x+25} ${y+12}, ${x+10} ${y+18}, ${x+12} ${y+28}`, fill:'none', stroke:INK, 'stroke-width':2.3, 'stroke-linecap':'round' }));
-  }
+  // G4: second line from below. F3: fourth line. Dots straddle the F3 line.
+  const scale = 40 / 976;
+  const anchorY = bass ? 644 : 256;
+  const referenceLine = y + (bass ? 10 : 30);
+  root.append(el('path', {
+    d: CLEF_PATHS[bass ? 'bass' : 'treble'],
+    transform: `translate(${x-50*scale} ${referenceLine+anchorY*scale}) scale(${scale} ${-scale})`,
+    fill: INK, stroke: 'none', 'fill-rule': 'nonzero',
+    'data-clef': bass ? 'bass' : 'treble', 'data-reference-y': referenceLine,
+    'aria-label': bass ? 'Басовый ключ' : 'Скрипичный ключ'
+  }));
 }
 function accidental(root, x, y, alter) {
-  if (alter === 2) { // Avoid depending on a double-sharp glyph in the device's font.
+  if (alter === 2) {
     const p=el('g', { 'data-accidental':2 });
     line(p,x+1,y-4,x+8,y+4,2,INK); line(p,x+1,y+4,x+8,y-4,2,INK); root.append(p); return;
   }
@@ -40,7 +45,7 @@ function keySymbols(root, notes, x, treble, bass) {
 function head(root, note, x, y, staff, duration) {
   for(let l=staff-10;y<=l;l-=10) line(root,x-9,l,x+9,l,1,INK);
   for(let l=staff+50;y>=l;l+=10) line(root,x-9,l,x+9,l,1,INK);
-  root.append(el('ellipse',{cx:x,cy:y,rx:duration>=4?6.8:5.5,ry:3.7,transform:`rotate(-18 ${x} ${y})`,fill:duration>=2?'#f2ecdf':INK,stroke:INK,'stroke-width':duration>=2?1.7:1,'data-midi':note.midi,'data-note':`${noteName(note)}${note.octave}`}));
+  root.append(el('ellipse',{cx:x,cy:y,rx:duration>=4?6.8:5.5,ry:3.7,transform:`rotate(${duration>=4?0:-18} ${x} ${y})`,fill:duration>=2?'none':INK,stroke:INK,'stroke-width':duration>=2?1.7:1,'data-duration':duration,'data-midi':note.midi,'data-note':`${noteName(note)}${note.octave}`}));
 }
 function events(root, list, positions, staff, isBass, key) {
   const seen=new Map(), signatureMap=new Map(key.map(n=>[n.letter,n.alter]));
@@ -50,7 +55,6 @@ function events(root, list, positions, staff, isBass, key) {
   const beamGroups=[];
   list.forEach((event, i) => {
     const x=positions[i], ys=event.notes.map(n=>staff+staffY(n,isBass));
-    // Place simultaneous accidentals in non-colliding columns.
     const columns=[];
     event.notes.map((n,j)=>({n,j})).sort((a,b)=>ys[a.j]-ys[b.j]).forEach(({n,j})=>{
       const id=n.letter+':'+n.octave, old=seen.has(id)?seen.get(id):signatureMap.get(n.letter);
@@ -113,7 +117,6 @@ export function renderScore(container, score) {
   if(typeof ResizeObserver!=='undefined'){
     observer??=new ResizeObserver(entries=>{
       for(const {target} of entries){const r=records.get(target);if(r&&target.clientWidth>0&&Math.abs(target.clientWidth-r.width)>1)pending.add(target);}
-      // SVG height changes are deferred out of the ResizeObserver delivery loop (Safari).
       if(pending.size&&!resizeFrame)resizeFrame=requestAnimationFrame(()=>{
         resizeFrame=0;const batch=[...pending];pending.clear();
         for(const target of batch){const r=records.get(target);if(r&&target.isConnected&&target.clientWidth>0)paint(target,r.score);}

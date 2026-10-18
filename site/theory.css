@@ -1,0 +1,12 @@
+/* Explanations stay collapsed; scores remain visible. */
+.lesson-theory{border:1px solid var(--line);border-radius:9px;margin:0 0 20px;background:var(--panel);padding:14px 18px}
+.lesson-theory>summary{cursor:pointer;font-size:14px;min-height:28px;line-height:28px}
+.theory-body{max-width:900px;padding-top:12px;color:var(--muted);font-size:14px;line-height:1.7;overflow-wrap:anywhere}
+.theory-section+.theory-section{margin-top:20px}
+.theory-section h4{font-size:14px;font-weight:600;line-height:1.5;color:var(--text);margin:0 0 8px}
+.theory-section p{margin:0 0 10px}
+.theory-sources{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);font-size:12px}
+.theory-sources a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.exercise-notes[open] .task-row{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+@media(max-width:600px){.lesson-theory{padding:12px 14px}.lesson-theory>summary{min-height:36px;line-height:36px}.theory-body{font-size:14px}.theory-section h4{font-size:14px}}
+@media print{.lesson-theory{display:none!important}}
