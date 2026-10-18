@@ -39,6 +39,8 @@ jobs:
         run: python tests/engraving_smoke.py
       - name: Verify owner invitations and member isolation in the interface
         run: python tests/access_smoke.py
+      - name: Verify per-card bass staves and directed bass motion
+        run: python tests/bass_smoke.py
       - name: Upload browser screenshots (synthetic data only)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -95,6 +97,9 @@ jobs:
                   app=read('app.js?v='+version)
                   assert 'data-zoom=' not in app and 'data-download=' not in app
                   assert 'mountAccess' in app
+                  assert 'data-bass=' in app and 'compileExercise' in app
+                  assert 'bass_offsets' in read('bass.js?v='+version)
+                  assert 'data-bass-visible' in read('notation.js?v='+version)
                   assert 'invite-form' in read('access.js?v='+version)
                   assert 'listAccess' in read('api.js?v='+version)
                   assert 'data-inversion' in read('chord-guide.js?v='+version)

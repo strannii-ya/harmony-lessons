@@ -41,3 +41,9 @@ aside{top:0;left:0;background:#fcfaf6;border-right:1px solid var(--line);box-sha
  .player,.focus .player{left:max(10px,env(safe-area-inset-left));right:62px;bottom:max(10px,env(safe-area-inset-bottom));padding:8px 12px;gap:12px;flex-wrap:nowrap;min-height:56px}.player-title{flex:1 1 180px;min-width:50px;width:auto}.player-title div{max-width:100%}.player .compact{display:flex;flex:none}.player .tempo-label{flex:0 1 160px}.tempo-label input{width:75px}.player>button{flex:none}.player-visible main{padding-bottom:86px}.guide-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media print{html,body{background:white;color:#222}.exercise,.guide-card,.prep,.lesson-theory,.score.score-sheet{box-shadow:none;background:white}.standalone-guide{display:block!important}.theory-body,.guide-card dd,.guide-card dt{color:#333}#landscape-menu{display:none!important}.figure-flow{break-inside:avoid}.guide-grid{display:block}.guide-card{break-inside:avoid}.primary-nav{display:none}.roman.progression-frame{background:white;color:#333;border-color:#aaa}}
+
+/* Per-exercise bass staff toggle: no page-wide visibility or audio side effects. */
+.exercise-actions [data-bass]{min-height:44px;padding:8px 12px;flex-shrink:0}
+.exercise-actions [data-bass][aria-pressed=true]{background:#eee0c9;border-color:#b89c76;color:#69471f;box-shadow:inset 0 1px 3px #78502816}
+@media(max-width:600px){.exercise-actions [data-bass]{padding-inline:9px}.exercise-actions .key-control{flex:0 1 auto}.exercise-actions .key-control select{max-width:145px}.exercise-actions button[data-star]{margin-left:0}}
+@media print{.exercise-actions [data-bass]{display:none!important}}

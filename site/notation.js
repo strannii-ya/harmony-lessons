@@ -34,11 +34,11 @@ function accidental(root, x, y, alter) {
   }
   text(root,x,y+5,alter===0?'♮':alter===1?'♯':alter===-1?'♭':'♭♭',19,{'font-family':'Arial, serif','data-accidental':alter});
 }
-function keySymbols(root, notes, x, treble) {
+function keySymbols(root, notes, x, staff, bass = false) {
   notes.forEach((n,i) => {
     const sharp = (n.originalAlter ?? n.alter) > 0;
     const oct = (sharp ? [5,5,5,5,5,4,4] : [5,5,5,4,4,4,4])[n.letter];
-    accidental(root,x+i*10,treble+staffY({...n,octave:oct}),n.alter);
+    accidental(root,x+i*10,staff+staffY({...n,octave:oct-(bass?2:0)},bass),n.alter);
   });
 }
 function head(root, note, x, y, staff, duration) {
@@ -79,22 +79,34 @@ function paint(container, score, forcedWidth, options = {}) {
   const actual=container.clientWidth || 800;
   const scale=zoom?1:(options.scale??0.75);
   const available=(forcedWidth || actual)/scale;
-  const layout=layoutScore(score,available,{...options,trebleOnly:true});
+  const showBass=options.showBass===true && score.bars.every(b=>b.left?.notes?.length);
+  const layoutOptions={...options,trebleOnly:true};
+  if(showBass)layoutOptions.trebleOnly=false;
+  const layout=layoutScore(score,available,layoutOptions);
   const active=container.querySelector('.playing')?.dataset.scoreBar;
-  const svg=el('svg',{viewBox:`0 0 ${layout.width} ${layout.height}`,width:zoom?layout.width:'100%',role:'img',class:'score-document','aria-label':score.bars.map(b=>`${b.symbol}: ${b.tones.map(noteName).join(', ')}`).join('. '),'data-layout-width':layout.width,'data-note-scale':scale});
+  const svg=el('svg',{viewBox:`0 0 ${layout.width} ${layout.height}`,width:zoom?layout.width:'100%',role:'img',class:'score-document','aria-label':score.bars.map(b=>`${b.symbol}: ${b.tones.map(noteName).join(', ')}${showBass?'; бас '+noteName(b.bass):''}`).join('. '),'data-layout-width':layout.width,'data-note-scale':scale,'data-bass-visible':showBass});
   svg.append(el('title',{},score.bars.map(b=>b.name).join(' — ')));
   layout.rows.forEach((r,ri)=>{
     const system=el('g',{'data-system':ri});svg.append(system);
     for(let i=0;i<5;i++)line(system,16,r.treble+i*10,r.end,r.treble+i*10);
     clef(system,22,r.treble,false);
     keySymbols(system,signature(r.bars[0].bar),64,r.treble);
+    if(showBass){
+      for(let i=0;i<5;i++)line(system,16,r.bass+i*10,r.end,r.bass+i*10);
+      line(system,16,r.treble,16,r.bass+40,1.2,INK);
+      const middle=(r.treble+r.bass+40)/2;
+      system.append(el('path',{d:`M 12 ${r.treble} Q 4 ${r.treble+5} 8 ${middle-8} Q 9 ${middle} 3 ${middle} Q 9 ${middle} 8 ${middle+8} Q 4 ${r.bass+35} 12 ${r.bass+40}`,fill:'none',stroke:INK,'stroke-width':1.4}));
+      clef(system,22,r.bass,true);
+      keySymbols(system,signature(r.bars[0].bar),64,r.bass,true);
+      if(r.meter && ri===0 && options.showMeter!==false){const x=16+r.prefix-15;text(system,x,r.bass+17,'4',17,{'font-weight':'bold','text-anchor':'middle'});text(system,x,r.bass+36,'4',17,{'font-weight':'bold','text-anchor':'middle'});}
+    }
     if(r.meter && ri===0 && options.showMeter!==false){const x=16+r.prefix-15;text(system,x,r.treble+17,'4',17,{'font-weight':'bold','text-anchor':'middle'});text(system,x,r.treble+36,'4',17,{'font-weight':'bold','text-anchor':'middle'});}
     r.bars.forEach(({bar,x,width,previous})=>{
       const g=el('g',{'data-score-bar':bar.index,class:'score-measure'+(active===String(bar.index)?' playing':''),'aria-label':`${bar.symbol}, ${bar.name}`});system.append(g);
       g.append(el('rect',{x:x+1,y:r.top+2,width:width-2,height:r.bottom-r.top-1,rx:3,fill:'transparent',class:'beat-highlight'}));
       let prefix=0;
       if(previous&&!sameKey(previous,bar)){
-        const syms=signatureChange(previous,bar);keySymbols(g,syms,x+5,r.treble);prefix=syms.length*10+18;
+        const syms=signatureChange(previous,bar);keySymbols(g,syms,x+5,r.treble);if(showBass)keySymbols(g,syms,x+5,r.bass,true);prefix=syms.length*10+18;
         text(g,x+prefix+12,r.top-1,`${KEY_RU[bar.tonic]||bar.tonic} ${bar.mode==='minor'?'moll':'dur'}`,9,{'font-family':'Arial, sans-serif',fill:'#776e5d'});
       }
       const key=keyPitches(bar.tonic,bar.mode);
@@ -103,9 +115,11 @@ function paint(container, score, forcedWidth, options = {}) {
       if(options.showLabels!==false){text(g,x+prefix+32,r.top+18,bar.symbol,15,{'font-weight':'bold'});text(g,x+prefix+32,r.top+36,bar.name,12,{fill:'#736952'});}
       const room=Math.max(25,width-prefix-inset-20);
       const positions=bar.rh.map((e,i)=>notesX+(bar.rh.length===1?0:i*room/(bar.rh.length-1)));
-      events(g,bar.rh,positions,r.treble,false,key);
-      line(system,x+width,r.treble,x+width,r.treble+40,1,INK);
-      if(bar.index===score.bars.length-1)line(system,x+width-4,r.treble,x+width-4,r.treble+40,2,INK);
+      const right=el('g',{'data-hand':'right'});g.append(right);
+      events(right,bar.rh,positions,r.treble,false,key);
+      if(showBass){const left=el('g',{'data-hand':'left'});g.append(left);events(left,[bar.left],[notesX],r.bass,true,key);}
+      line(system,x+width,r.treble,x+width,(showBass?r.bass:r.treble)+40,1,INK);
+      if(bar.index===score.bars.length-1)line(system,x+width-4,r.treble,x+width-4,(showBass?r.bass:r.treble)+40,2,INK);
     });
   });
   container.replaceChildren(svg);
