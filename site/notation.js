@@ -54,11 +54,13 @@ function events(root, list, positions, staff, isBass, key) {
   const beamGroups=[];
   list.forEach((event, i) => {
     const x=positions[i], ys=event.notes.map(n=>staff+staffY(n,isBass));
+    const hasSecond=ys.some((y,j)=>ys.some((other,k)=>j!==k&&Math.abs(y-other)<6));
+    const leftShift=down&&hasSecond?(event.duration>=4?13.6:9):0;
     const columns=[];
     event.notes.map((n,j)=>({n,j})).sort((a,b)=>ys[a.j]-ys[b.j]).forEach(({n,j})=>{
       const id=n.letter+':'+n.octave, old=seen.has(id)?seen.get(id):signatureMap.get(n.letter);
       if(old!==n.alter){let col=0;while(columns[col]?.some(y=>Math.abs(y-ys[j])<23))col++;
-        (columns[col]??=[]).push(ys[j]);accidental(root,x-19-col*11,ys[j],n.alter);seen.set(id,n.alter);
+        (columns[col]??=[]).push(ys[j]);accidental(root,x-30-leftShift-col*13,ys[j],n.alter);seen.set(id,n.alter);
       }
     });
     const occupied=[];
@@ -95,9 +97,11 @@ function paint(container, score, forcedWidth, options = {}) {
         const syms=signatureChange(previous,bar);keySymbols(g,syms,x+5,r.treble);prefix=syms.length*10+18;
         text(g,x+prefix+12,r.top-1,`${KEY_RU[bar.tonic]||bar.tonic} ${bar.mode==='minor'?'moll':'dur'}`,9,{'font-family':'Arial, sans-serif',fill:'#776e5d'});
       }
-      const key=keyPitches(bar.tonic,bar.mode), notesX=x+prefix+40;
-      if(options.showLabels!==false){text(g,notesX-8,r.top+18,bar.symbol,15,{'font-weight':'bold'});text(g,notesX-8,r.top+36,bar.name,12,{fill:'#736952'});}
-      const room=Math.max(25,width-prefix-60);
+      const key=keyPitches(bar.tonic,bar.mode);
+      const crowded=bar.rh.some(e=>e.notes.filter(n=>n.alter!==key.find(k=>k.letter===n.letter)?.alter).length>1 || e.notes.some((n,j)=>e.notes.some((m,k)=>j!==k&&Math.abs(staffY(n)-staffY(m))<6)));
+      const inset=crowded?70:40,notesX=x+prefix+inset;
+      if(options.showLabels!==false){text(g,x+prefix+32,r.top+18,bar.symbol,15,{'font-weight':'bold'});text(g,x+prefix+32,r.top+36,bar.name,12,{fill:'#736952'});}
+      const room=Math.max(25,width-prefix-inset-20);
       const positions=bar.rh.map((e,i)=>notesX+(bar.rh.length===1?0:i*room/(bar.rh.length-1)));
       events(g,bar.rh,positions,r.treble,false,key);
       line(system,x+width,r.treble,x+width,r.treble+40,1,INK);
