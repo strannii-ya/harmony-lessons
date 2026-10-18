@@ -29,13 +29,13 @@ jobs:
         run: |
           python -m pip install --quiet playwright==1.56.0
           python -m playwright install --with-deps chromium webkit > /tmp/playwright-install.log 2>&1 || { tail -80 /tmp/playwright-install.log; exit 1; }
-      - name: Verify mobile and desktop interfaces with synthetic fixtures
+      - name: Verify light theme and portrait and landscape phones
         run: python tests/mobile_smoke.py
       - name: Verify Google PKCE and remembered sessions with synthetic fixtures
         run: python tests/google_smoke.py
       - name: Verify complete scores and responsive reflow
         run: python tests/score_smoke.py
-      - name: Verify engraved clefs, transparent notes and private theory
+      - name: Verify separate chord guide and private theory
         run: python tests/engraving_smoke.py
       - name: Upload browser screenshots (synthetic data only)
         if: always()
@@ -79,15 +79,17 @@ jobs:
               req=urllib.request.Request(base+path,headers={'Cache-Control':'no-cache'})
               with urllib.request.urlopen(req,timeout=20) as response:
                   return response.read().decode('utf-8')
-          error=None
           for attempt in range(8):
               try:
                   status=json.loads(read('version.json?verify='+expected))
                   assert status['commit']==expected, 'Pages is still serving a different commit'
                   version=status['version']
                   html=read('?verify='+expected)
-                  assert './learning-view.js?v='+version in html, 'Missing updated UI module'
-                  assert './chord-guide.css?v='+version in html, 'Missing updated stylesheet'
+                  assert './light.css?v='+version in html, 'Missing light theme'
+                  assert 'data-view="reference"' in html, 'Missing separate reference'
+                  assert 'id="midi"' not in html
+                  app=read('app.js?v='+version)
+                  assert 'data-zoom=' not in app and 'data-download=' not in app
                   assert 'data-inversion' in read('chord-guide.js?v='+version)
                   assert 'trebleOnly:true' in read('notation.js?v='+version)
                   print('Verified live GitHub Pages:',base)
@@ -95,7 +97,6 @@ jobs:
                   print('Published asset version:',version)
                   break
               except Exception as exc:
-                  error=exc
                   if attempt==7:raise
                   print('Waiting for Pages propagation:',str(exc))
                   time.sleep(8)
