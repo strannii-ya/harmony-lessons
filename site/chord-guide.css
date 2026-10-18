@@ -1,0 +1,21 @@
+/* Compact progression > complete treble score > controls. No auth or private content here. */
+.roman.progression-frame{display:inline-block;max-width:100%;border:1px solid #66563e;border-radius:6px;padding:4px 10px;background:#28231c;margin:2px 0 4px}
+.exercise-heading>div{flex:1}.exercise-actions{margin:12px 0 8px}.exercise-heading{padding-bottom:6px}
+.all-score-controls{margin:10px 0 22px;padding:10px 0;border-top:1px solid var(--line)}
+.chord-guide{border:1px solid var(--line);border-radius:9px;padding:12px 16px;background:var(--panel)}
+.chord-guide>summary{font-size:14px;color:var(--text);min-height:28px;line-height:28px;cursor:pointer}
+.guide-content>p{font-size:13px;margin:12px 0}.guide-root{margin:14px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
+.guide-root select{min-height:44px;min-width:120px;font-size:16px}
+.guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.guide-card{min-width:0;border:1px solid var(--line);border-radius:9px;padding:14px;background:#25221d}
+.guide-card header{min-height:96px}.guide-card header>strong{font-size:17px;color:var(--accent)}
+.guide-card h3{font-size:14px;font-weight:500;line-height:1.5;margin:5px 0}
+.guide-card [data-chord-name]{display:block;font-size:16px;color:var(--accent);margin:6px 0 10px}
+.guide-card .score{padding:3px}.guide-actions{margin:10px 0}.guide-actions label{font-size:12px}
+.guide-actions select{width:100%;min-width:0;min-height:44px;font-size:14px}
+.guide-card dl{margin:12px 0;font-size:13px}.guide-card dt{color:var(--muted);font-size:11px;margin-top:8px;line-height:1.5}
+.guide-card dd{margin:2px 0;color:var(--text);line-height:1.55;overflow-wrap:anywhere}
+.guide-explanation{margin:8px 0 0;font-size:13px;line-height:1.6}.guide-explanation>summary{cursor:pointer;min-height:32px;line-height:32px}
+.chord-guide .guide-explanation p{margin:8px 0 12px;max-width:100%}
+@media(max-width:700px){.guide-grid{grid-template-columns:1fr}.chord-guide{padding:10px 12px}.guide-card header{min-height:0}.guide-actions select{font-size:16px}.chord-guide>summary{min-height:44px;line-height:1.5;padding-block:10px}.roman.progression-frame{padding:3px 8px}}
+@media print{.chord-guide,.all-score-controls{display:none!important}.roman.progression-frame{background:transparent;border-color:#888}}

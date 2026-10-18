@@ -24,11 +24,11 @@ function barWidth(bar, previous, arpeggio) {
   return keys + Math.max(music, labels + 32);
 }
 /** Full progression, never pages or a single active-chord viewport. */
-export function layoutScore(score, width) {
+export function layoutScore(score, width, options = {}) {
   if (!score?.bars?.length) throw new Error('Пустая последовательность');
   if (!Number.isFinite(width)) throw new Error('Неверная ширина нот');
   width = Math.max(320, Math.round(width));
-  const meter = score.bars.every(b => b.beats === 4);
+  const meter = options.showMeter!==false && !score.noMeter && score.bars.every(b => b.beats === 4);
   const rows = []; let row;
   for (const bar of score.bars) {
     let previous = row?.bars.at(-1)?.bar;
@@ -52,12 +52,20 @@ export function layoutScore(score, width) {
     r.bars.forEach(b => { b.x = x; b.width = b.minimum * ratio; x += b.width; });
     r.end = x;
     const right = r.bars.flatMap(b => b.bar.rh.flatMap(e => e.notes.map(n => staffY(n))));
-    const left = r.bars.flatMap(b => b.bar.left.notes.map(n => staffY(n, true)));
     r.top = cursor;
-    r.treble = cursor + Math.max(70, 65 - Math.min(...right));
-    r.bass = r.treble + Math.max(96, Math.max(...right) - Math.min(...left) + 54);
-    r.bottom = r.bass + Math.max(60, Math.max(...left) + 12);
-    cursor = r.bottom + 28;
+    if(options.trebleOnly){
+      const topRoom=options.showLabels===false?30:65;
+      r.treble=cursor+Math.max(topRoom,topRoom-Math.min(...right));
+      r.bass=null;
+      r.bottom=r.treble+Math.max(60,Math.max(...right)+34);
+      cursor=r.bottom+20;
+    }else{
+      const left=r.bars.flatMap(b=>b.bar.left.notes.map(n=>staffY(n,true)));
+      r.treble=cursor+Math.max(70,65-Math.min(...right));
+      r.bass=r.treble+Math.max(96,Math.max(...right)-Math.min(...left)+54);
+      r.bottom=r.bass+Math.max(60,Math.max(...left)+12);
+      cursor=r.bottom+28;
+    }
   });
   return { width, height: cursor - 10, rows, meter };
 }
