@@ -1,3 +1,4 @@
+import { mountAccess } from './access.js';
 import { guideHTML, mountGuide } from './chord-guide.js';
 import { compile, KEYS, KEY_RU, transposeKey } from './music.js';
 import { renderScore, clearScores } from './notation.js';
@@ -18,12 +19,17 @@ const roman=e=>e.progression.map(x=>typeof x==='string'?x:x.symbol).join(' – '
 const chapterRoman=n=>['','I','II','III','IV','V','VI','VII'][n]||n;
 function navigate(view,lesson){player.stop();$('#player').hidden=true;state.selected=null;state.view=view;if(lesson)state.lesson=lesson;history.replaceState(null,'','#'+(view==='lesson'?'lesson-'+state.lesson:view));document.body.classList.remove('menu-open');render();window.scrollTo({top:0,behavior:'instant'});}
 function nav(){
+ $('[data-view=access]').hidden=!api.isOwner;
  $('#lesson-count').textContent=state.data.lessons.length;
  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===state.view||(b.dataset.view==='course'&&state.view==='lesson')));
  let html='',chapter=null;for(const l of state.data.lessons){if(l.chapter!==chapter){chapter=l.chapter;html+=`<div class="chapter-label">${chapterRoman(chapter)} / ${esc(l.chapter_title)}</div>`;}html+=`<button class="lesson-link ${state.view==='lesson'&&String(state.lesson)===String(l.id)?'active':''}" data-lesson="${esc(l.id)}"><span class="num">${String(l.position).padStart(2,'0')}</span><span>${esc(l.title)}</span>${progressFor(l.id)?.completed?'<span class="done">✓</span>':''}</button>`;}
  $('#lesson-nav').innerHTML=html;
 }
-function render(){clearScores();nav();if(state.view==='course')course();else if(state.view==='lesson')lesson();else if(state.view==='reference')reference();else library();}
+function render(){clearScores();nav();if(state.view==='course')course();else if(state.view==='lesson')lesson();else if(state.view==='reference')reference();else if(state.view==='access')access();else library();}
+function access(){
+ $('#breadcrumb').textContent='Доступ';
+ mountAccess($('#content'),api);
+}
 function reference(){
  $('#breadcrumb').textContent='Аккорды и обращения';
  $('#content').innerHTML='<section class="page-heading"><h1>Аккорды и обращения</h1></section>'+guideHTML(true);
@@ -77,13 +83,13 @@ document.addEventListener('click',protect(async ev=>{
  if(b.id==='print'){player.stop();window.print();}
  if(b.id==='save-notes'){b.disabled=true;try{await persistProgress({notes:$('#notes').value});$('#note-status').textContent='Сохранено';}finally{b.disabled=false;}}
  if(b.id==='complete'){const completed=!progressFor(state.lesson)?.completed;await persistProgress({completed});b.textContent=completed?'✓ Пройдено':'Отметить пройденным';b.setAttribute('aria-pressed',completed);}
- if(b.id==='signout'){player.stop();clearScores();let remoteError;try{await api.signOut();}catch(e){remoteError=e;}state.data=null;state.user=null;state.settings.clear();$('#content').replaceChildren();$('#lesson-nav').replaceChildren();$('#player').hidden=true;$('#shell').hidden=true;$('#gate').hidden=false;$('#email').value='';$('#login-status').textContent=remoteError?'Сессия на этом устройстве очищена. Серверный выход не подтверждён: '+remoteError.message:'Вы вышли.';state.selected=null;}
+ if(b.id==='signout'){player.stop();clearScores();let remoteError;try{await api.signOut();}catch(e){remoteError=e;}state.data=null;state.user=null;state.settings.clear();$('[data-view=access]').hidden=true;$('#content').replaceChildren();$('#lesson-nav').replaceChildren();$('#player').hidden=true;$('#shell').hidden=true;$('#gate').hidden=false;$('#email').value='';$('#login-status').textContent=remoteError?'Сессия на этом устройстве очищена. Серверный выход не подтверждён: '+remoteError.message:'Вы вышли.';state.selected=null;}
 }));
 document.addEventListener('change',protect(async ev=>{const t=ev.target;if(t.dataset.key){const e=exerciseBy(t.dataset.key);state.settings.set(e.id,{...settings(e),tonic:t.value});await refreshExercise(e.id);}if(t.id==='pattern'){state.pattern=t.value;player.stop();document.querySelectorAll('.exercise').forEach(d=>draw(d.dataset.eid));}if(t.id==='hand'){state.hand=t.value;if(player.running)await startPlayback(state.selected);}if(t.id==='filter'){state.filter=t.value;renderResults();}}));
 $('#tempo').addEventListener('input',ev=>{state.bpm=Number(ev.target.value);$('#tempo-value').textContent=state.bpm;});$('#tempo').addEventListener('change',protect(async()=>{if(player.running)await startPlayback(state.selected);}));
 document.addEventListener('input',ev=>{if(ev.target.id==='search'){state.search=ev.target.value;renderResults();}});
 document.addEventListener('keydown',ev=>{if(ev.code==='Space'&&!['INPUT','TEXTAREA','SELECT','BUTTON','SUMMARY'].includes(document.activeElement.tagName)&&state.selected){ev.preventDefault();if(player.running)player.stop();else protect(startPlayback)(state.selected);}if(ev.key==='Escape'){document.body.classList.remove('menu-open');player.stop();}});
-async function enter(user){state.user=user;state.data=await api.load();if(!state.data.lessons?.length)throw new Error('Личная библиотека пока не заполнена. Вход подтверждён, материалы ещё не загружены.');$('#gate').hidden=true;$('#shell').hidden=false;const m=/^#lesson-(\d+)$/.exec(location.hash);if(m){state.view='lesson';state.lesson=Number(m[1]);}else if(['#reference','#library','#favorites'].includes(location.hash)){state.view=location.hash.slice(1);}render();}
+async function enter(user){state.user=user;state.data=await api.load();if(!state.data.lessons?.length)throw new Error('Личная библиотека пока не заполнена. Вход подтверждён, материалы ещё не загружены.');$('#gate').hidden=true;$('#shell').hidden=false;const m=/^#lesson-(\d+)$/.exec(location.hash);if(m){state.view='lesson';state.lesson=Number(m[1]);}else if(['#reference','#library','#favorites','#access'].includes(location.hash)){state.view=location.hash.slice(1);}render();}
 $('#login-form').addEventListener('submit',async ev=>{ev.preventDefault();const b=$('#send');b.disabled=true;try{await api.send($('#email').value);$('#login-status').textContent='Открой ссылку из нового письма.';$('#code-form').hidden=false;}catch(e){$('#login-status').textContent=e.message;}finally{setTimeout(()=>b.disabled=!api.configured,60000);}});
 $('#code-form').addEventListener('submit',async ev=>{ev.preventDefault();const b=ev.target.querySelector('button');b.disabled=true;try{await enter(await api.verify($('#email').value,$('#code').value));}catch(e){$('#login-status').textContent=e.message;}finally{b.disabled=false;}});
 (async()=>{try{const c=await fetch('./config.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Настройки сайта недоступны');return r.json();});api=new LibraryAPI(c);$('#send').disabled=!api.configured;

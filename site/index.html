@@ -4,10 +4,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f1eb"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="harmony-release" content="2026-10-18-light-reference">
+<meta name="harmony-release" content="2026-10-18-owner-access">
 <title>Гармония — личный учебник</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css">
-<link rel="stylesheet" href="./google.css"><link rel="stylesheet" href="./score.css"><link rel="stylesheet" href="./theory.css"><link rel="stylesheet" href="./chord-guide.css"><link rel="stylesheet" href="./light.css">
+<link rel="stylesheet" href="./google.css"><link rel="stylesheet" href="./score.css"><link rel="stylesheet" href="./theory.css"><link rel="stylesheet" href="./chord-guide.css"><link rel="stylesheet" href="./light.css"><link rel="stylesheet" href="./access.css">
 <script type="module" src="./google.js"></script>
 <script type="module" src="./app.js"></script><script type="module" src="./mobile.js"></script>
 </head>
@@ -29,7 +29,7 @@
  </div>
 </section>
 <div id="shell" class="shell" hidden><button id="landscape-menu" aria-label="Открыть меню" title="Меню" aria-controls="sidebar" aria-expanded="false">☰</button>
- <aside id="sidebar"><a class="brand" href="#course"><span class="brandmark">h.</span><div>Гармония</div></a><nav class="primary-nav" aria-label="Разделы"><button data-view="course">▦ <span>Мой курс</span><b id="lesson-count">23</b></button><button data-view="library">♫ <span>Последовательности</span></button><button data-view="reference">♮ <span>Аккорды и обращения</span></button><button data-view="favorites">☆ <span>Избранное</span></button></nav><div class="sidebar-label">ПРОГРАММА КУРСА</div><nav id="lesson-nav" aria-label="Уроки"></nav><div class="sidebar-bottom"><span>Аккаунт</span><button id="signout" title="Выйти" aria-label="Выйти">↗</button></div></aside>
+ <aside id="sidebar"><a class="brand" href="#course"><span class="brandmark">h.</span><div>Гармония</div></a><nav class="primary-nav" aria-label="Разделы"><button data-view="course">▦ <span>Мой курс</span><b id="lesson-count">23</b></button><button data-view="library">♫ <span>Последовательности</span></button><button data-view="reference">♮ <span>Аккорды и обращения</span></button><button data-view="favorites">☆ <span>Избранное</span></button><button data-view="access" hidden>♧ <span>Доступ</span></button></nav><div class="sidebar-label">ПРОГРАММА КУРСА</div><nav id="lesson-nav" aria-label="Уроки"></nav><div class="sidebar-bottom"><span>Аккаунт</span><button id="signout" title="Выйти" aria-label="Выйти">↗</button></div></aside>
  <div class="workspace"><header class="topbar"><button id="menu" aria-label="Открыть навигацию">☰</button><div id="breadcrumb">Мой курс</div><div class="top-actions"><button id="focus" title="Режим занятия">Скрыть меню</button></div></header><main id="content" tabindex="-1"></main></div>
  <section id="player" class="player" aria-label="Проигрыватель" hidden><div class="player-title"><span class="tiny-dot"></span><div id="playing-title"></div></div><button id="play-toggle" class="play-circle" aria-label="Играть">▶</button><label class="tempo-label">Темп <input id="tempo" type="range" min="36" max="160" value="72"><output id="tempo-value">72</output></label><label class="compact">Руки<select id="hand"><option value="both">Обе</option><option value="left">Бас</option><option value="right">Правая</option></select></label><button id="loop" aria-pressed="false" title="Повторять">↻</button><button id="close-player" aria-label="Остановить и закрыть">×</button></section>
 </div>
