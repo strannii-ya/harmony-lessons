@@ -1,7 +1,7 @@
 name: Verify and publish harmony notebook
 on:
   push:
-    branches: [main, engraving-vexflow]
+    branches: [main, engraving-vexflow, auth-yandex]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -33,6 +33,11 @@ jobs:
         run: |
           python -m pip install --quiet playwright==1.56.0
           python -m playwright install --with-deps chromium webkit > /tmp/playwright-install.log 2>&1 || { tail -80 /tmp/playwright-install.log; exit 1; }
+      - name: Verify Google and Yandex login with synthetic providers
+        run: python tests/yandex_smoke.py
+      - name: Verify deployed Yandex adapter rejects unauthenticated requests
+        if: github.event_name != 'pull_request'
+        run: python scripts/verify-yandex-endpoint.py
       - name: Verify light theme and portrait and landscape phones
         run: python tests/mobile_smoke.py
       - name: Verify Google PKCE and remembered sessions with synthetic fixtures
@@ -100,6 +105,9 @@ jobs:
                   assert 'data-view="reference"' in html
                   assert 'data-view="access"' in html
                   assert 'id="midi"' not in html
+                  assert 'id="google-signin"' in html and 'id="yandex-signin"' in html
+                  oauth=read('oauth-session.js?v='+version)
+                  assert 'custom:yandex' in oauth and 'login:email' in oauth and 'yandexUrl' in oauth
                   app=read('app.js?v='+version)
                   assert 'data-zoom=' not in app and 'data-download=' not in app
                   assert 'mountAccess' in app and 'data-bass=' in app

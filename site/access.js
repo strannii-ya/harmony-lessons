@@ -1,8 +1,8 @@
 /** Owner UI only. Authorization and account binding are enforced by database policies and triggers. */
-export const accessHTML = () => `<section class="page-heading"><h1>Доступ</h1><p class="access-lead">Добавь email Google-аккаунта друга и отправь ему ссылку на учебник.</p></section>
+export const accessHTML = () => `<section class="page-heading"><h1>Доступ</h1><p class="access-lead">Добавь email аккаунта друга в Google или Яндексе и отправь ему ссылку на учебник.</p></section>
 <section class="access-panel" aria-labelledby="invite-title"><h2 id="invite-title">Добавить аккаунт</h2>
-<form id="invite-form"><label for="invite-email">Email Google-аккаунта</label><div class="invite-input-row"><input id="invite-email" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="friend@gmail.com" required><button type="submit" class="primary">Добавить</button></div></form>
-<p class="access-help">Письмо не отправляется. Друг открывает сайт и нажимает «Войти через Google». Уроки общие; заметки, избранное и прогресс у каждого свои.</p>
+<form id="invite-form"><label for="invite-email">Email для входа</label><div class="invite-input-row"><input id="invite-email" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="friend@example.com" required><button type="submit" class="primary">Добавить</button></div></form>
+<p class="access-help">Письмо не отправляется. Друг выбирает Google или Яндекс и входит с приглашённым email. Разные адреса считаются разными аккаунтами; @ya.ru и @yandex.ru здесь не заменяются автоматически. Уроки общие; заметки, избранное и прогресс у каждого свои.</p>
 <p id="access-status" role="status" aria-live="polite"></p>
 </section>
 <section class="access-panel" aria-labelledby="share-title"><h2 id="share-title">Ссылка для друзей</h2><div class="invite-input-row"><input id="share-url" type="url" readonly aria-label="Ссылка на учебник"><button id="copy-share" type="button">Скопировать</button></div></section>

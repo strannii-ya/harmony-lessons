@@ -9,3 +9,4 @@
 .auth-divider{max-width:410px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;display:flex;gap:12px;align-items:center;margin:20px 0}
 .auth-divider:before,.auth-divider:after{content:'';height:1px;background:var(--line);flex:1}
 @media(max-width:600px){.google-button{font-size:16px;min-height:50px}.google-login{max-width:none}.remember-label{font-size:13px}.google-note{font-size:13px}.auth-divider{max-width:none}}
+.yandex-mark{font:500 25px/1 Arial,sans-serif;color:#e8342b;width:20px;text-align:center;flex:none}.yandex-button{margin-top:0}.yandex-button[aria-busy=true] .yandex-mark{opacity:.6}

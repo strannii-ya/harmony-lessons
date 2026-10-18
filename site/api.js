@@ -17,7 +17,7 @@ export class LibraryAPI extends AuthSession {
   const headers={'apikey':this.key,'Content-Type':'application/json'};if(auth)headers.Authorization='Bearer '+this.session.access_token;if(prefer)headers.Prefer=prefer;
   let response;try{response=await fetch(this.url+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(20000)});}catch{const e=new Error('Не удалось связаться с библиотекой. Проверь интернет и повтори попытку.');e.status=0;throw e;}
   const text=await response.text();let value;try{value=text?JSON.parse(text):null;}catch{throw new Error('Некорректный ответ сервера');}
-  if(!response.ok){if(auth&&response.status===401)this.clear();const e=new Error(response.status===429?'Достигнут лимит запросов. Google-вход не требует почтового письма.':value?.message||value?.error_description||value?.msg||`Ошибка соединения (${response.status})`);e.status=response.status;e.code=value?.error_code||value?.code;throw e;}
+  if(!response.ok){if(auth&&response.status===401)this.clear();const e=new Error(response.status===429?'Достигнут лимит запросов. Вход через Google или Яндекс не требует письма от учебника.':value?.message||value?.error_description||value?.msg||`Ошибка соединения (${response.status})`);e.status=response.status;e.code=value?.error_code||value?.code;throw e;}
   return value;
  }
  get isOwner(){return this.membership?.is_owner===true && this.membership?.active===true;}

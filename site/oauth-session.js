@@ -1,17 +1,30 @@
-/** Supabase PKCE + opt-in session persistence. Only Supabase sessions are stored, never Google tokens. */
+/** Supabase PKCE + opt-in session persistence. Only Supabase sessions are stored, never upstream provider tokens. */
 export const OAUTH_SETUP_MESSAGE = 'Google-вход ещё не включён в Supabase. Нужна разовая настройка Google Client ID и Client Secret в Authentication → Sign In / Providers → Google.';
+export const YANDEX_SETUP_MESSAGE = 'Яндекс-вход ещё не настроен. Владелец должен подключить custom:yandex в Supabase. Вход через Google работает отдельно.';
+const PROVIDERS = Object.freeze({
+  google: {id:'google', label:'Google', scopes:'openid email profile'},
+  yandex: {id:'custom:yandex', label:'Яндекс', scopes:'login:email'}
+});
+function providerInfo(name) {
+  if (!Object.hasOwn(PROVIDERS,name)) throw new Error('Неизвестный способ входа.');
+  return PROVIDERS[name];
+}
 const LEGACY_SESSION = 'harmony.session';
 const encode64 = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 export async function pkcePair() {
-  if (!globalThis.crypto?.subtle) throw new Error('Для Google-входа открой сайт по HTTPS в обычном браузере.');
+  if (!globalThis.crypto?.subtle) throw new Error('Для входа открой сайт по HTTPS в обычном браузере.');
   const verifier = encode64(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = encode64(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
   return {verifier, challenge};
 }
-export function authFailure(code) {
-  if (code === 'access_denied') return 'Google-вход отменён или выбранный аккаунт не разрешён. Нажми «Войти через Google» и выбери аккаунт владельца.';
-  if (['provider_disabled','validation_failed','unsupported_provider'].includes(code)) return OAUTH_SETUP_MESSAGE;
-  return 'Не удалось завершить Google-вход. Начни заново кнопкой «Войти через Google» в этом браузере.';
+export function authFailure(code, provider='google') {
+  const label=PROVIDERS[provider]?.label || 'выбранный сервис';
+  if (code === 'access_denied') return `Вход через ${label} отменён или аккаунт не приглашён. Начни вход заново и выбери аккаунт, которому выдан доступ.`;
+  if (['provider_disabled','validation_failed','unsupported_provider','custom_provider_not_found'].includes(code))
+    return provider==='yandex' ? YANDEX_SETUP_MESSAGE : OAUTH_SETUP_MESSAGE;
+  if (['email_not_found','email_not_verified','provider_email_needs_verification'].includes(code))
+    return 'Сервис не подтвердил подходящий адрес почты. Проверь основной email аккаунта и приглашение в учебник.';
+  return `Не удалось завершить вход через ${label}. Нажми кнопку входа заново в этом браузере.`;
 }
 function storage(name) { try { return globalThis[name]; } catch { return null; } }
 function get(store, key) { try { return store?.getItem(key) ?? null; } catch { return null; } }
@@ -83,30 +96,56 @@ export class AuthSession {
     }
     await this.refreshing;
   }
-  async googleUrl({remember=false}={}) {
-    const config = await this.request('/auth/v1/settings');
-    if (config?.external?.google !== true) throw new Error(OAUTH_SETUP_MESSAGE);
-    this.setRemember(remember);
-    const redirectTo = location.origin + location.pathname;
-    const {verifier,challenge} = await pkcePair();
-    set(storage('sessionStorage'), this.pkceKey, JSON.stringify({verifier,redirectTo,startedAt:Date.now()}));
+  async googleUrl(options={}) { return this.oauthUrl('google',options); }
+  async yandexUrl(options={}) { return this.oauthUrl('yandex',options); }
+  async oauthUrl(provider,{remember=false}={}) {
+    const spec=providerInfo(provider);
+    if (!this.url || !this.key) throw new Error('Подключение библиотеки пока не настроено.');
+    if (provider==='google') {
+      const config=await this.request('/auth/v1/settings');
+      if (config?.external?.google !== true) throw new Error(OAUTH_SETUP_MESSAGE);
+    }
+    const redirectTo=location.origin+location.pathname;
+    const {verifier,challenge}=await pkcePair();
     const url=new URL(this.url+'/auth/v1/authorize');
-    url.search=new URLSearchParams({provider:'google',redirect_to:redirectTo,code_challenge:challenge,code_challenge_method:'s256',scopes:'openid email profile',prompt:'select_account'}).toString();
+    url.search=new URLSearchParams({provider:spec.id,redirect_to:redirectTo,
+      code_challenge:challenge,code_challenge_method:'s256',scopes:spec.scopes,
+      ...(provider==='google'?{prompt:'select_account'}:{force_confirm:'yes'})}).toString();
+    if (provider==='yandex') {
+      // /settings lists built-in providers only. Probe our Auth server without
+      // following its redirect. No provider token, email or session is sent.
+      // An enabled provider gives an opaque redirect; a missing one gives JSON.
+      let response;
+      try { response=await fetch(url.href,{redirect:'manual',cache:'no-store',credentials:'omit',
+        headers:{apikey:this.key},signal:AbortSignal.timeout(15000)}); }
+      catch { throw new Error('Не удалось проверить Яндекс-вход. Проверь интернет и повтори попытку.'); }
+      if(response.type!=='opaqueredirect') {
+        if ([400,404].includes(response.status)) throw new Error(YANDEX_SETUP_MESSAGE);
+        if (response.status===429) throw new Error('Слишком много попыток входа. Повтори немного позже.');
+        throw new Error('Сервис входа временно недоступен. Попробуй ещё раз позже.');
+      }
+    }
+    this.setRemember(remember);
+    set(storage('sessionStorage'),this.pkceKey,JSON.stringify({verifier,redirectTo,startedAt:Date.now(),provider}));
     return url.href;
   }
   async restore() {
     const query = new URLSearchParams(location.search), hash = new URLSearchParams(location.hash.slice(1));
     const error = query.get('error_code') || query.get('error') || hash.get('error_code') || hash.get('error');
-    if (error) { cleanCallback(); remove(storage('sessionStorage'),this.pkceKey); throw new Error(authFailure(error)); }
+    if (error) {
+      let provider='google';
+      try { const value=JSON.parse(get(storage('sessionStorage'),this.pkceKey)||'null');if(PROVIDERS[value?.provider])provider=value.provider; } catch {}
+      cleanCallback();remove(storage('sessionStorage'),this.pkceKey);throw new Error(authFailure(error,provider));
+    }
     const code=query.get('code');
     if (code) {
       let pending; try { pending=JSON.parse(get(storage('sessionStorage'),this.pkceKey)||'null'); } catch { pending=null; }
       cleanCallback();
       remove(storage('sessionStorage'),this.pkceKey);
-      if (!pending || !/^[A-Za-z0-9_-]{43}$/.test(pending.verifier) || pending.redirectTo!==location.origin+location.pathname || Date.now()-pending.startedAt>600000 || !Number.isFinite(pending.startedAt) || pending.startedAt>Date.now() || code.length>4096)
-        throw new Error('Вход начат в другой вкладке или истёк. Нажми «Войти через Google» здесь заново.');
+      if (!pending || !/^[A-Za-z0-9_-]{43}$/.test(pending.verifier) || pending.redirectTo!==location.origin+location.pathname || Date.now()-pending.startedAt>600000 || !Number.isFinite(pending.startedAt) || pending.startedAt>Date.now() || code.length>4096 || (pending.provider!==undefined&&!Object.hasOwn(PROVIDERS,pending.provider)))
+        throw new Error('Вход начат в другой вкладке или истёк. Нажми нужную кнопку входа здесь заново.');
       try { this.store(await this.request('/auth/v1/token?grant_type=pkce',{method:'POST',body:{auth_code:code,code_verifier:pending.verifier}})); }
-      catch(e) { this.clear(); throw new Error(e.status===0 ? e.message : authFailure(e.code)); }
+      catch(e) { this.clear(); throw new Error(e.status===0 ? e.message : authFailure(e.code,pending.provider||'google')); }
     } else if (hash.has('access_token')) {
       // Compatibility for the existing email-link flow; it still needs server-side identity and membership checks.
       cleanCallback();
