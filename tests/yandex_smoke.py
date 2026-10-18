@@ -1,6 +1,6 @@
 """Synthetic login only. Real browser redirect/PKCE behaviour; no Yandex account or email."""
 import asyncio, functools, os, threading, time
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright, expect
@@ -12,7 +12,20 @@ class Quiet(SimpleHTTPRequestHandler):
 server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(PUBLIC)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
 BASE=f'http://127.0.0.1:{server.server_port}/'
-PROJECT='https://synthetic.supabase.co'
+# WebKit cannot synthesize 302 through Route.fulfill. Use an actual HTTP
+# response on a second local origin so both engines test a real opaque redirect.
+class RedirectHandler(BaseHTTPRequestHandler):
+ def log_message(self,*args):pass
+ def do_GET(self):
+  if urlparse(self.path).path!='/auth/v1/authorize':self.send_error(404);return
+  self.send_response(302)
+  self.send_header('Location','https://oauth.yandex.ru/authorize?state=synthetic-only')
+  self.send_header('Access-Control-Allow-Origin',BASE.rstrip('/'))
+  self.send_header('Cache-Control','no-store')
+  self.send_header('Content-Length','0');self.end_headers()
+redirect_server=ThreadingHTTPServer(('127.0.0.1',0),RedirectHandler)
+threading.Thread(target=redirect_server.serve_forever,daemon=True).start()
+PROJECT=f'http://127.0.0.1:{redirect_server.server_port}'
 USER='11111111-1111-4111-8111-111111111111'
 async def scenario(engine,width,height):
  options={}
@@ -25,7 +38,12 @@ async def scenario(engine,width,height):
  async def respond(route):
   request=route.request;url=request.url;path=urlparse(url).path
   if url==BASE+'config.json':return await route.fulfill(json={'supabaseUrl':PROJECT,'publishableKey':'sb_publishable_fixture'})
-  if url.startswith(BASE):return await route.continue_()
+  if url.startswith(BASE):
+   if path=='/':
+    # Allow just the local synthetic Auth origin in this fixture's CSP.
+    html=(PUBLIC/'index.html').read_text().replace('https://*.supabase.co',PROJECT)
+    return await route.fulfill(content_type='text/html',body=html)
+   return await route.continue_()
   if not url.startswith(PROJECT+'/'):
    state['external']+=1
    return await route.abort()
@@ -37,7 +55,7 @@ async def scenario(engine,width,height):
     state['probes']+=1
     assert 'authorization' not in request.headers
     if not state['enabled']:return await route.fulfill(status=400,json={'error_code':'validation_failed','msg':'Provider disabled'},headers=cors)
-    return await route.fulfill(status=302,headers={**cors,'Location':'https://oauth.yandex.ru/authorize?state=synthetic-only'})
+    return await route.continue_()
    state['navigations']+=1
    return await route.fulfill(content_type='text/html',body='<p>Синтетическая страница авторизации. Нет запросов к реальному провайдеру.</p>')
   elif path.endswith('/token'):
@@ -99,5 +117,5 @@ async def main():
    for engine in [p.chromium,p.webkit]:
     if engine.name=='webkit' and os.environ.get('YANDEX_CHROMIUM_ONLY'):continue
     for width,height in [(375,812),(932,430),(1440,960)]:await scenario(engine,width,height)
- finally:server.shutdown()
+ finally:server.shutdown();redirect_server.shutdown()
 if __name__=='__main__':asyncio.run(main())
