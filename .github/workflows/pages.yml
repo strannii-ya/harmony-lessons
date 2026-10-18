@@ -66,3 +66,37 @@ jobs:
       - name: Deploy public interface
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
+      - name: Verify files actually served by GitHub Pages
+        env:
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+          base=os.environ['PAGES_URL'].rstrip('/')+'/'
+          expected=os.environ['EXPECTED_COMMIT']
+          def read(path):
+              req=urllib.request.Request(base+path,headers={'Cache-Control':'no-cache'})
+              with urllib.request.urlopen(req,timeout=20) as response:
+                  return response.read().decode('utf-8')
+          error=None
+          for attempt in range(8):
+              try:
+                  status=json.loads(read('version.json?verify='+expected))
+                  assert status['commit']==expected, 'Pages is still serving a different commit'
+                  version=status['version']
+                  html=read('?verify='+expected)
+                  assert './learning-view.js?v='+version in html, 'Missing updated UI module'
+                  assert './chord-guide.css?v='+version in html, 'Missing updated stylesheet'
+                  assert 'data-inversion' in read('chord-guide.js?v='+version)
+                  assert 'trebleOnly:true' in read('notation.js?v='+version)
+                  print('Verified live GitHub Pages:',base)
+                  print('Published commit:',status['commit'])
+                  print('Published asset version:',version)
+                  break
+              except Exception as exc:
+                  error=exc
+                  if attempt==7:raise
+                  print('Waiting for Pages propagation:',str(exc))
+                  time.sleep(8)
+          PY
