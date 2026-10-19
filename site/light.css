@@ -47,3 +47,8 @@ aside{top:0;left:0;background:#fcfaf6;border-right:1px solid var(--line);box-sha
 .exercise-actions [data-bass][aria-pressed=true]{background:#eee0c9;border-color:#b89c76;color:#69471f;box-shadow:inset 0 1px 3px #78502816}
 @media(max-width:600px){.exercise-actions [data-bass]{padding-inline:9px}.exercise-actions .key-control{flex:0 1 auto}.exercise-actions .key-control select{max-width:145px}.exercise-actions button[data-star]{margin-left:0}}
 @media print{.exercise-actions [data-bass]{display:none!important}}
+
+/* Independent right-hand voicing switch; same controls in lessons, library and favorites. */
+.exercise-actions [data-voicing]{white-space:nowrap}
+.exercise-actions [data-voicing][aria-pressed="true"]{background:#efe3d3;border-color:#a67e55;color:#52391f;box-shadow:inset 0 1px 2px #67432115}
+@media(max-width:600px){.exercise-actions [data-voicing]{min-height:44px}}

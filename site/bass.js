@@ -1,3 +1,4 @@
+import { applyRightHandVoicings } from './voicings.js';
 import { compile, mod, normalizeSymbol, pitch, shiftNote } from './music.js';
 
 /** Editorial choices arrive with the authenticated exercise, not a public lesson list. */
@@ -22,7 +23,7 @@ export function bassButtonLabel(visible){return visible?'Скрыть бас':'�
 export function compileExercise(exercise,options) {
  const score=compile(exercise.progression,options);
  const offsets=exercise.theory?.notation?.bass_offsets;
- if(offsets===undefined)return score;
+ if(offsets===undefined)return options?.inversions?applyRightHandVoicings(score,{loop:exercise.loop===true}):score;
  if(!Array.isArray(offsets)||offsets.length!==score.bars.length||
     offsets.some(n=>!Number.isInteger(n)||n < -24 || n > 36))
   throw new Error('Некорректная запись басовой линии.');
@@ -38,5 +39,5 @@ export function compileExercise(exercise,options) {
   bar.bass=shiftNote(bar.bass,midi-bar.bass.midi);
   bar.left.notes=[bar.bass];
  });
- return score;
+ return options?.inversions?applyRightHandVoicings(score,{loop:exercise.loop===true}):score;
 }

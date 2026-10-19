@@ -1,7 +1,8 @@
+import { keyLabel } from './key-labels.js';
 /** VexFlow + Bravura. One complete SVG per exercise; score data remains the audio source. */
 import { VF } from './vexflow.js';
 import { planEngraving } from './engraving.js';
-import { noteName, KEY_RU } from './music.js';
+import { noteName } from './music.js';
 const NS='http://www.w3.org/2000/svg',INK='#332f28';
 function node(tag,attrs={},value){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(value!==undefined)n.textContent=value;return n;}
 function label(parent,x,y,value,size=13,extra={}){parent.append(node('text',{x,y,fill:INK,'font-family':'Georgia, serif','font-size':size,...extra},value));}
@@ -32,6 +33,7 @@ function paint(container,score,forcedWidth,options={}){
  const svg=mount.querySelector('svg');
  svg.setAttribute('class','score-document');svg.setAttribute('role','img');
  svg.setAttribute('data-renderer','vexflow-bravura');svg.setAttribute('data-note-scale',scale);
+ svg.setAttribute('data-rh-voicings',score.rightHandVoicings===true);svg.setAttribute('data-key-label',keyLabel(score.tonic,score.mode));
  svg.setAttribute('data-layout-width',plan.width);svg.setAttribute('data-bass-visible',plan.showBass);
  svg.setAttribute('aria-label',score.bars.map(b=>`${b.symbol}: ${b.tones.map(noteName).join(', ')}${plan.showBass?'; бас '+noteName(b.bass):''}`).join('. '));
  svg.prepend(node('title',{},score.bars.map(b=>b.name||b.symbol).join(' — ')));
@@ -70,7 +72,7 @@ function paint(container,score,forcedWidth,options={}){
     const x=start+right.notes[0].getTickContext().getX();
     label(measure,x,23,bar.symbol,15,{'font-weight':'600'});
     if(bar.name)label(measure,x,42,bar.name,12,{fill:'#736952'});
-    if(m.changed)label(measure,m.x+5,9,`${KEY_RU[bar.tonic]||bar.tonic} ${bar.mode==='minor'?'минор':'мажор'}`,9,{'font-family':'Arial, sans-serif',fill:'#776e5d'});
+    if(m.changed)label(measure,m.x+5,9,keyLabel(bar.tonic,bar.mode),9,{'font-family':'Arial, sans-serif',fill:'#776e5d'});
    }
    ctx.closeGroup();
   }
