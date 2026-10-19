@@ -3,7 +3,7 @@ import { keyLabel } from './key-labels.js';
 import { VF } from './vexflow.js';
 import { planEngraving } from './engraving.js';
 import { noteName } from './music.js';
-const NS='http://www.w3.org/2000/svg',INK='#332f28';
+const NS='http://www.w3.org/2000/svg',INK='#332f28',STAFF_INK='#8c857a';
 function node(tag,attrs={},value){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(value!==undefined)n.textContent=value;return n;}
 function label(parent,x,y,value,size=13,extra={}){parent.append(node('text',{x,y,fill:INK,'font-family':'Georgia, serif','font-size':size,...extra},value));}
 function annotateHand(group,model){
@@ -48,8 +48,8 @@ function paint(container,score,forcedWidth,options={}){
    staves.forEach((stave,i)=>{
     stave.setX(m.x).setY((i?row.bass:row.treble)-40).setWidth(m.width);
     stave.setEndBarType(bar.index===score.bars.length-1?VF.Barline.type.END:VF.Barline.type.SINGLE);
-    stave.setContext(ctx);stave.setStyle({strokeStyle:INK,fillStyle:INK,lineWidth:1});
-    stave.setDefaultLedgerLineStyle({strokeStyle:INK,lineWidth:1.25});
+    stave.setContext(ctx);stave.setStyle({strokeStyle:STAFF_INK,fillStyle:INK,lineWidth:1});
+    stave.setDefaultLedgerLineStyle({strokeStyle:STAFF_INK,lineWidth:1.25});
    });
    const start=Math.max(...staves.map(s=>s.getNoteStartX()))+8;staves.forEach(s=>s.setNoteStartX(start));
    right.notes.forEach(n=>n.setStave(staves[0]));left?.notes.forEach(n=>n.setStave(staves[1]));
@@ -71,8 +71,8 @@ function paint(container,score,forcedWidth,options={}){
    if(options.showLabels!==false){
     const x=start+right.notes[0].getTickContext().getX();
     label(measure,x,23,bar.symbol,15,{'font-weight':'600'});
-    if(bar.name)label(measure,x,42,bar.name,12,{fill:'#736952'});
-    if(m.changed)label(measure,m.x+5,9,keyLabel(bar.tonic,bar.mode),9,{'font-family':'Arial, sans-serif',fill:'#776e5d'});
+    if(bar.name)label(measure,x,42,bar.name,12,{fill:'#736c63',class:'score-caption'});
+    if(m.changed)label(measure,m.x+5,9,keyLabel(bar.tonic,bar.mode),9,{'font-family':'Arial, sans-serif',fill:'#736c63',class:'score-caption'});
    }
    ctx.closeGroup();
   }

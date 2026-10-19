@@ -4,7 +4,7 @@ import { vexKey } from './engraving.js';
 import { asciiName } from './music.js';
 import { staffY } from './score-layout.js';
 import { rootLabel, solfegeName } from './mode-model.js';
-const INK='#332f28',NS='http://www.w3.org/2000/svg',SIGNS={'-2':'bb','-1':'b',0:'n',1:'#',2:'##'};
+const INK='#332f28',STAFF_INK='#8c857a',NS='http://www.w3.org/2000/svg',SIGNS={'-2':'bb','-1':'b',0:'n',1:'#',2:'##'};
 function descriptors(score){
  const state=new Map();
  return score.notes.map((n,index)=>{
@@ -13,11 +13,13 @@ function descriptors(score){
   state.set(key,n.alter);return {n,index,sign};
  });
 }
+// Whole-note glyphs describe scale degrees, not a measured rhythm.
+// The audio model intentionally keeps one equal listening pulse per pitch.
 function prepare(items,width){
  const stave=new VF.Stave(14,40,width-28).addClef('treble');
  stave.setBegBarType(VF.Barline.type.NONE).setEndBarType(VF.Barline.type.NONE);
- const notes=items.map(item=>{const note=new VF.StaveNote({clef:'treble',keys:[vexKey(item.n)],duration:'q',auto_stem:true});if(item.sign)note.addModifier(new VF.Accidental(item.sign),0);note.setStave(stave);return note;});
- const voice=new VF.Voice({num_beats:notes.length,beat_value:4}).addTickables(notes);
+ const notes=items.map(item=>{const note=new VF.StaveNote({clef:'treble',keys:[vexKey(item.n)],duration:'w'});if(item.sign)note.addModifier(new VF.Accidental(item.sign),0);note.setStave(stave);return note;});
+ const voice=new VF.Voice({num_beats:notes.length*4,beat_value:4}).addTickables(notes);
  const formatter=new VF.Formatter().joinVoices([voice]);
  const prefix=stave.getNoteStartX()-stave.getX()+10;
  const minimum=28+prefix+Math.max(formatter.preCalculateMinTotalWidth([voice])+22,items.length*26);
@@ -46,14 +48,14 @@ function paint(root,score,forcedWidth){
  for(const [ri,row] of plan.rows.entries()){
   const ys=row.items.map(d=>staffY(d.n)),top=Math.max(38,35-Math.min(...ys)),height=top+Math.max(76,Math.max(...ys)+40);
   const group=ctx.openGroup('scale-system');group.setAttribute('data-scale-system',ri);group.setAttribute('transform',`translate(0 ${cursor})`);
-  const {stave,voice,notes,formatter}=row;stave.setWidth(plan.width-28).setY(top-40).setContext(ctx).setStyle({strokeStyle:INK,fillStyle:INK,lineWidth:1});
-  stave.setDefaultLedgerLineStyle({strokeStyle:INK,lineWidth:1.25});stave.setNoteStartX(stave.getNoteStartX()+10);
+  const {stave,voice,notes,formatter}=row;stave.setWidth(plan.width-28).setY(top-40).setContext(ctx).setStyle({strokeStyle:STAFF_INK,fillStyle:INK,lineWidth:1});
+  stave.setDefaultLedgerLineStyle({strokeStyle:STAFF_INK,lineWidth:1.25});stave.setNoteStartX(stave.getNoteStartX()+10);
   notes.forEach(n=>n.setStave(stave));formatter.format([voice],stave.getNoteEndX()-stave.getNoteStartX()-14);
   stave.draw();voice.draw(ctx,stave);
   notes.forEach((note,i)=>{
    const head=note.noteHeads[0],path=group.querySelector('#'+CSS.escape('vf-'+head.getAttribute('id'))+' > path');
    if(!path)throw new Error('Не удалось отрисовать ноту');
-   const {n,index}=row.items[i];path.setAttribute('class','scale-pitch');path.setAttribute('data-scale-note-index',index);path.setAttribute('data-note',asciiName(n)+'/'+n.octave);path.setAttribute('data-midi',n.midi);path.setAttribute('data-degree',n.degree);path.setAttribute('data-duration','1');
+   const {n,index}=row.items[i];path.setAttribute('class','scale-pitch');path.setAttribute('data-scale-note-index',index);path.setAttribute('data-note',asciiName(n)+'/'+n.octave);path.setAttribute('data-midi',n.midi);path.setAttribute('data-degree',n.degree);path.setAttribute('data-duration','4');path.setAttribute('data-playback-beats','1');path.setAttribute('data-hollow','true');path.setAttribute('data-glyph',head.glyph_code);
   });
   ctx.closeGroup();cursor+=height+10;
  }

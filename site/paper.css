@@ -1,0 +1,41 @@
+/* White paper surfaces. Controls and keyboard-focus outlines remain visible. */
+:root {
+  --panel: #fff;
+  --paper: #fff;
+  --caption: #736c63;
+  --shadow: 0 3px 8px #4636260a, 0 12px 28px #46362614;
+}
+.course-card, .resume-row, .exercise, .guide-card, .mode-card,
+.access-panel, .notes-editor, .prep, .lesson-theory, .mode-intro,
+.guide-content > .guide-explanation {
+  background: var(--paper);
+  border: 0;
+  box-shadow: var(--shadow);
+}
+.course-card:hover {
+  background: var(--paper);
+  border: 0;
+  box-shadow: 0 4px 12px #46362610, 0 16px 34px #4636261a;
+}
+/* Scores are part of the card, not another inset panel. */
+.score.score-sheet:not(.score-error), .mode-score.score-sheet {
+  background: var(--paper);
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+.score-document { background: transparent; }
+/* Keep structural diagrams, not a second set of framed cards. */
+.theory-figure, .figure-step { border: 0; }
+.figure-step { background: var(--paper); }
+.mode-formula { border: 0; }
+/* Only secondary labels soften; explanatory text and musical glyphs stay dark. */
+.page-count, .small-caption, .genre-badge, .reference-count, .mode-count,
+.mode-size, .mode-feature, .exercise-index, .guide-card dt, .mode-details dt,
+.course-card small, .note-status { color: var(--caption); }
+@media print {
+  .course-card, .resume-row, .exercise, .guide-card, .mode-card,
+  .access-panel, .notes-editor, .prep, .lesson-theory, .mode-intro,
+  .guide-content > .guide-explanation { box-shadow: none; background: white; }
+  .score-caption { fill: #514b43; }
+}
