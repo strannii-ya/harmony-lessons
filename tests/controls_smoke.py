@@ -1,5 +1,5 @@
 """Synthetic accounts only. Verify minimal controls and readable, non-overlapping score labels."""
-import asyncio,functools,threading,json
+import asyncio,functools,threading,json,os
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from playwright.async_api import async_playwright,expect
@@ -19,7 +19,8 @@ FIXTURE={'lessons':[{'id':1,'position':1,'chapter':1,'chapter_title':'Прове
 class Quiet(SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
 async def scenario(engine,w,h,base):
- browser=await engine.launch();ctx=await browser.new_context(viewport={'width':w,'height':h},has_touch=w<=1024)
+ launch={'executable_path':os.environ['CHROMIUM_EXECUTABLE']} if engine.name=='chromium' and os.environ.get('CHROMIUM_EXECUTABLE') else {}
+ browser=await engine.launch(**launch);ctx=await browser.new_context(viewport={'width':w,'height':h},has_touch=w<=1024)
  saved=[];writes=[]
  async def mock(route):
   path=route.request.url.split('?')[0]
@@ -71,22 +72,36 @@ async def scenario(engine,w,h,base):
   await page.goto(base+'#lesson-1',wait_until='networkidle')
   await expect(page.locator('.exercise')).to_have_count(4)
   first=page.locator('.exercise').first
-  await expect(first.locator('[data-voicing]')).to_have_text('с обращениями')
+  await expect(first.locator('[data-voicing]')).to_have_text('')
+  await expect(first.locator('[data-voicing] .voice-head')).to_have_count(6)
+  await expect(first.locator('[data-voicing]')).to_have_attribute('aria-label','С обращениями правой руки')
+  await expect(first.locator('[data-voicing]')).to_have_attribute('title','Плавное голосоведение правой руки. Подобрать обращения правой руки')
   assert await first.locator('[data-bass]').inner_text()==''
   await expect(first.locator('[data-bass] svg.bass-control-icon path')).to_have_count(1)
   await expect(first.locator('[data-bass]')).to_have_attribute('aria-label','Басовая строка')
+  icon=await first.locator('.bass-control-icon').bounding_box();assert icon['width']==18 and icon['height']==22
+  assert await first.locator('[data-bass]').evaluate("b=>getComputedStyle(b).color")=='rgb(140, 132, 120)'
+  for delta in ['-1','1']:
+   await expect(first.locator(f'[data-shift="{delta}"] .transpose-icon')).to_have_count(1)
+   assert await first.locator(f'[data-shift="{delta}"]').inner_text()==''
   await expect(first.locator('.score-degree').first).to_have_attribute('font-size','21')
   await expect(first.locator('.score-chord').first).to_have_attribute('font-size','18')
   await fits()
   await first.screenshot(path=str(OUT/f'controls-lesson-{engine.name}-{w}x{h}.png'))
   await first.locator('[data-bass] svg').click();await expect(first.locator('[data-bass]')).to_have_attribute('aria-pressed','true')
   before=await first.locator('[data-hand=left] [data-note]').evaluate_all('ns=>ns.map(n=>n.dataset.midi)')
-  await first.locator('[data-voicing]').click();await expect(first.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
+  await first.locator('[data-voicing] svg').click();await expect(first.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
   assert await first.locator('[data-hand=left] [data-note]').evaluate_all('ns=>ns.map(n=>n.dataset.midi)')==before
-  await expect(first.locator('[data-voicing]')).to_have_text('с обращениями');await fits()
+  await expect(first.locator('[data-voicing]')).to_have_text('');await fits()
+  for selector in ['[data-bass]','[data-voicing]']:
+   assert await first.locator(selector).evaluate("b=>getComputedStyle(b,'::after').opacity")=='1'
+   await expect(first.locator(selector)).to_have_css('color','rgb(133, 83, 49)')
+  if await page.evaluate("matchMedia('(pointer: coarse)').matches"):
+   await expect(page.locator('#toast')).to_contain_text('Бас не меняется')
+   assert await page.evaluate("localStorage.getItem('harmony.voicing-icon-help.v1')")=='1'
   await first.screenshot(path=str(OUT/f'controls-active-{engine.name}-{w}x{h}.png'))
-  await first.locator('[data-shift="1"]').click();await expect(first.locator('[data-key]')).to_have_value('Db')
-  await first.locator('[data-shift="-1"]').click();await expect(first.locator('[data-key]')).to_have_value('C')
+  await first.locator('[data-shift="1"] svg').click();await expect(first.locator('[data-key]')).to_have_value('Db')
+  await first.locator('[data-shift="-1"] svg').click();await expect(first.locator('[data-key]')).to_have_value('C')
   await first.locator('[data-bass]').focus();await page.keyboard.press('Enter')
   await expect(first.locator('[data-bass]')).to_have_attribute('aria-pressed','false')
   await page.keyboard.press('Tab')
@@ -113,15 +128,23 @@ async def scenario(engine,w,h,base):
   await first.locator('[data-star]').click();await nav('favorites');await expect(page.locator('.exercise')).to_have_count(1);await fits()
   await nav('modes');await expect(page.locator('.mode-card')).to_have_count(44)
   await page.select_option('[data-modes-category]','diatonic');await fits()
-  await page.locator('.mode-card').first.screenshot(path=str(OUT/f'controls-mode-{engine.name}-{w}x{h}.png'))
+  mode=page.locator('.mode-card').first
+  await expect(mode.locator('[data-scale-shift] .transpose-icon')).to_have_count(2)
+  await mode.locator('[data-scale-shift="-1"] svg').click();await expect(mode.locator('[data-scale-root]')).to_have_value('B')
+  await mode.locator('[data-scale-shift="1"] svg').click();await expect(mode.locator('[data-scale-root]')).to_have_value('C')
+  await mode.screenshot(path=str(OUT/f'controls-mode-{engine.name}-{w}x{h}.png'))
   await page.locator('[data-scale-play]').first.click();await expect(page.locator('[data-scale-play]').first).to_have_attribute('aria-pressed','true')
   await page.locator('[data-scale-play]').first.click()
   await nav('reference');await expect(page.locator('.guide-card')).to_have_count(44);await fits()
   await page.locator('.guide-card').first.screenshot(path=str(OUT/f'controls-reference-{engine.name}-{w}x{h}.png'))
   if w>h and h<=520:await expect(page.locator('.topbar')).to_be_hidden()
+  # The touch explanation must not be repeated on another page load.
+  await page.goto(base+'?hint-reload#lesson-1',wait_until='networkidle')
+  await page.locator('[data-voicing]').first.click()
+  if await page.evaluate("matchMedia('(pointer: coarse)').matches"):await expect(page.locator('#toast')).to_be_hidden()
   assert writes==['favorites'],writes
   assert not errors,errors
-  print(f'PASS {engine.name} {w}x{h}: uniform 44px borderless controls, clef toggle, stable names, keyboard focus, larger collision-free labels, transposition, audio, genres, favorites and reference views',flush=True)
+  print(f'PASS {engine.name} {w}x{h}: 44px borderless icon controls, smaller muted bass, active dots, direction arrows, one-time hint, keyboard focus, score labels, transposition, audio and all reference views',flush=True)
  finally:await ctx.close();await browser.close()
 async def main():
  server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT/'dist')))
@@ -129,6 +152,7 @@ async def main():
  try:
   async with async_playwright() as p:
    for engine,w,h in [(p.chromium,320,812),(p.chromium,768,1024),(p.chromium,1440,960),(p.webkit,375,812),(p.webkit,932,430)]:
+    if os.environ.get('CHROMIUM_ONLY') and engine.name!='chromium':continue
     await scenario(engine,w,h,f'http://127.0.0.1:{server.server_port}/')
  finally:server.shutdown()
 if __name__=='__main__':asyncio.run(main())
