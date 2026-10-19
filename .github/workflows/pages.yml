@@ -33,6 +33,8 @@ jobs:
         run: |
           python -m pip install --quiet playwright==1.56.0
           python -m playwright install --with-deps chromium webkit > /tmp/playwright-install.log 2>&1 || { tail -80 /tmp/playwright-install.log; exit 1; }
+      - name: Verify session renewal, loading screens and disclosure typography
+        run: python tests/auth_ux_smoke.py
       - name: Verify modal reference, ascending notation and transposition
         run: python tests/modes_smoke.py
       - name: Verify Google and Yandex login with synthetic providers
@@ -113,8 +115,15 @@ jobs:
                   assert 'data-view="modes"' in html and 'modes.css?v='+version in html
                   assert 'id="midi"' not in html
                   assert 'id="google-signin"' in html and 'id="yandex-signin"' in html
+                  assert 'id="auth-loading"' in html and 'class="yandex-logo"' in html
+                  assert 'auth-screen.css?v='+version in html
+                  assert '--disclosure-title-size: 14px' in read('paper.css?v='+version)
+                  assert 'scope=local' in read('api.js?v='+version)
+                  assert 'getLibraryAPI' in read('auth-client.js?v='+version)
+                  assert 'loadingError' in read('auth-screen.js?v='+version)
                   oauth=read('oauth-session.js?v='+version)
                   assert 'custom:yandex' in oauth and 'login:email' in oauth and 'yandexUrl' in oauth
+                  assert 'startAutoRefresh' in oauth and 'rememberChoice' in oauth
                   app=read('app.js?v='+version)
                   assert 'data-zoom=' not in app and 'data-download=' not in app
                   assert 'mountAccess' in app and 'data-bass=' in app and 'data-voicing=' in app
