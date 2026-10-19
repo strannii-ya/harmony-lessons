@@ -5,7 +5,7 @@ import { staffY, sameKey } from './score-layout.js';
 const DURATIONS=new Map([[4,'w'],[3,'h'],[2,'h'],[1,'q'],[.5,'8']]);
 const SIGNS=new Map([[-2,'bb'],[-1,'b'],[0,'n'],[1,'#'],[2,'##']]);
 /** Shared by the planner and renderer so larger labels reserve real horizontal and vertical room. */
-export const SCORE_LABEL_STYLE=Object.freeze({symbolSize:21,nameSize:18,symbolY:32,nameY:58,topRoom:102});
+export const SCORE_LABEL_STYLE=Object.freeze({symbolSize:21,nameSize:18,symbolY:36,nameY:62,topRoom:106});
 let labelContext;
 export function scoreLabelWidth(value,size,weight=400){
  const text=String(value??'');
