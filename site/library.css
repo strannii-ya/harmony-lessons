@@ -14,5 +14,12 @@
 .genre-explanation summary{cursor:pointer;min-height:40px;line-height:40px;color:var(--text)}
 .genre-badge{font-size:11px;color:var(--muted);margin:0 0 6px;line-height:1.5}
 .genre-group>h2{margin:22px 0 16px}
-@media(max-width:700px){.reference-controls{grid-template-columns:1fr 1fr}.reference-controls>label:last-child{grid-column:1/-1}.reference-controls select{font-size:16px;max-width:100%}.reference-controls .guide-root select{min-width:0}.library-search input,.library-search select{min-width:0;width:100%;flex-basis:100%;max-width:none;font-size:16px}.library-collections button{flex:1;padding:8px 10px;min-height:44px}.guide-category h2,.genre-group>h2{font-size:22px}}
+@media(max-width:700px){.reference-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.reference-controls>label:last-child{grid-column:1/-1}.reference-controls select{font-size:16px;max-width:100%}.reference-controls .guide-root select{min-width:0}.library-search input,.library-search select{min-width:0;width:100%;flex-basis:100%;max-width:none;font-size:16px}.library-collections button{flex:1;padding:8px 10px;min-height:44px}.guide-category h2,.genre-group>h2{font-size:22px}}
 @media print{.library-collections,.library-search,.genre-explanation,.reference-controls,.reference-count{display:none!important}}
+
+/* Bound native select intrinsic sizing and long headings in WebKit without clipping scores. */
+.guide-content,.guide-category,.guide-grid,.guide-card,.reference-controls{min-width:0;max-width:100%}
+.guide-category>h2,.guide-card header,.guide-card dl,.guide-card dt,.guide-card dd{min-width:0;max-width:100%;overflow-wrap:anywhere;word-wrap:break-word}
+.reference-controls input,.reference-controls select,.guide-actions select{box-sizing:border-box;max-width:100%;text-overflow:ellipsis}
+@media(max-width:700px){.guide-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:480px){.reference-controls{grid-template-columns:minmax(0,1fr)}.reference-controls>label:last-child{grid-column:auto}}

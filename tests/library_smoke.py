@@ -1,5 +1,5 @@
 """Only synthetic scores and identities: no live login, course reads or email delivery."""
-import asyncio, functools, threading, os
+import asyncio, functools, threading, os, json
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from playwright.async_api import async_playwright,expect
@@ -42,7 +42,13 @@ async def scenario(engine,w,h,base):
   elif w<=900:await page.locator('#menu').click()
   await page.locator(f'.primary-nav [data-view={view}]').click()
  async def fits():
-  assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+  # Give the renderer's ResizeObserver one completed frame after replacing a category.
+  await page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+  geometry=await page.evaluate("""()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('#content *')].filter(n=>{const r=n.getBoundingClientRect();return r.width&&r.right>innerWidth+1}).slice(0,30).map(n=>({tag:n.tagName,cls:n.getAttribute('class'),text:n.textContent.slice(0,120),width:n.getBoundingClientRect().width,right:n.getBoundingClientRect().right,min:getComputedStyle(n).minWidth,grid:getComputedStyle(n).gridTemplateColumns}))})""")
+  if geometry['scroll']>geometry['width']+1:
+   print('Overflow diagnostics:',engine.name,w,h,json.dumps(geometry,ensure_ascii=False),flush=True)
+   await page.screenshot(path=str(OUT/f'library-overflow-{engine.name}-{w}x{h}.png'),full_page=True)
+  assert geometry['scroll']<=geometry['width']+1,geometry
   assert not await page.evaluate('''()=>[...document.querySelectorAll('.score-document')].some(svg=>{
    const v=svg.viewBox.baseVal,m=svg.getScreenCTM().inverse();
    return [...svg.querySelectorAll('[data-note],.vf-accidental,.vf-clef')].some(n=>{const b=n.getBoundingClientRect(),a=new DOMPoint(b.left,b.top).matrixTransform(m),z=new DOMPoint(b.right,b.bottom).matrixTransform(m);return a.x< -1||a.y< -1||z.x>v.width+1||z.y>v.height+1});})''')
@@ -76,7 +82,7 @@ async def scenario(engine,w,h,base):
   await page.select_option('[data-guide-root]','F#');await expect(ninth.locator('[data-chord-name]')).to_have_text('F♯9/G♯');await fits()
   await page.locator('.guide-category').screenshot(path=str(OUT/f'library-ninths-{engine.name}-{w}x{h}.png'))
   await page.select_option('[data-guide-category]','extensions');await expect(page.locator('.guide-card')).to_have_count(5)
-  await fits();await page.select_option('[data-guide-category]','all');await page.locator('[data-guide-search]').fill('sus2')
+  await fits();await page.locator('.guide-category').screenshot(path=str(OUT/f'library-extensions-{engine.name}-{w}x{h}.png'));await page.select_option('[data-guide-category]','all');await page.locator('[data-guide-search]').fill('sus2')
   await expect(page.locator('[data-chord-type=sus2]')).to_be_visible();await page.locator('[data-guide-search]').fill('ZZnotfound');await expect(page.locator('.guide-card')).to_have_count(0)
   await page.locator('[data-guide-search]').fill('');await expect(page.locator('.guide-card')).to_have_count(44);await fits()
   assert not errors,errors
