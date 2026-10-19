@@ -1,0 +1,48 @@
+name: Verify authentication UX
+on:
+  push:
+    branches: [auth-session-ux, main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: auth-ux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  auth-ux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Retrieve official sign-in artwork for review
+        run: |
+          mkdir -p ui-results
+          python - <<'PY'
+          import urllib.request,re,json,pathlib
+          base='https://yandex.ru/dev/id/doc/ru/codes/buttons-design'
+          req=urllib.request.Request(base,headers={'User-Agent':'Mozilla/5.0'})
+          html=urllib.request.urlopen(req,timeout=30).read().decode()
+          svgs=re.findall(r'<svg\b[^>]*>.*?</svg>',html,re.S)
+          links=sorted(set(re.findall(r'https?[^\s"<>]+\.(?:svg|zip|fig)',html)))
+          out=pathlib.Path('ui-results')
+          (out/'yandex-artwork.html').write_text(html)
+          (out/'yandex-artwork-svgs.json').write_text(json.dumps({'source':base,'svgs':svgs,'links':links},ensure_ascii=False,indent=2))
+          print('Reviewed public official documentation:',len(svgs),'inline SVGs;',len(links),'asset links')
+          PY
+      - name: Check models and build
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run prepare:engraving
+          npm test
+          npm run build
+      - name: Save review assets
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: auth-ux-checks
+          path: ui-results
+          retention-days: 3
