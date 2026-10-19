@@ -127,3 +127,10 @@
 @media (prefers-reduced-motion: reduce) {
   #content :is(.exercise-actions, .mode-actions) button { transition: none; }
 }
+
+/* One disclosure-heading size, matching the original lesson Theory heading. */
+:root { --disclosure-title-size: 14px; }
+#content details > summary, #gate details > summary {
+ font-size: var(--disclosure-title-size); font-weight: 400; font-family: inherit;
+ letter-spacing: normal;
+}

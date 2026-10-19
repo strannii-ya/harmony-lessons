@@ -18,31 +18,28 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - name: Retrieve official sign-in artwork for review
-        run: |
-          mkdir -p ui-results
-          python - <<'PY'
-          import urllib.request,re,json,pathlib
-          base='https://yandex.ru/dev/id/doc/ru/codes/buttons-design'
-          req=urllib.request.Request(base,headers={'User-Agent':'Mozilla/5.0'})
-          html=urllib.request.urlopen(req,timeout=30).read().decode()
-          svgs=re.findall(r'<svg\b[^>]*>.*?</svg>',html,re.S)
-          links=sorted(set(re.findall(r'https?[^\s"<>]+\.(?:svg|zip|fig)',html)))
-          out=pathlib.Path('ui-results')
-          (out/'yandex-artwork.html').write_text(html)
-          (out/'yandex-artwork-svgs.json').write_text(json.dumps({'source':base,'svgs':svgs,'links':links},ensure_ascii=False,indent=2))
-          print('Reviewed public official documentation:',len(svgs),'inline SVGs;',len(links),'asset links')
-          PY
-      - name: Check models and build
+      - name: Check all musical and security models
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm run prepare:engraving
           npm test
           npm run build
-      - name: Save review assets
+      - name: Install pinned test browsers
+        run: |
+          python -m pip install --quiet playwright==1.56.0
+          python -m playwright install --with-deps chromium webkit > /tmp/auth-ux-browsers.log 2>&1 || { tail -60 /tmp/auth-ux-browsers.log; exit 1; }
+      - name: Verify session renewal, loading states, brand icon and disclosure headings
+        run: python tests/auth_ux_smoke.py
+      - name: Preserve existing Google and Yandex login behavior
+        run: |
+          python tests/google_smoke.py
+          python tests/yandex_smoke.py
+      - name: Verify responsive layout
+        run: python tests/mobile_smoke.py
+      - name: Save synthetic previews
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: auth-ux-checks
           path: ui-results
-          retention-days: 3
+          retention-days: 7

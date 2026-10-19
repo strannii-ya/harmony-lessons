@@ -1,0 +1,15 @@
+/* Login and restoration are distinct states, including the first paint after OAuth. */
+.auth-loading{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:32px 22px;background:var(--bg);color:var(--text)}
+.auth-loading-content{width:100%;max-width:420px;text-align:center}
+.auth-loading .brand{justify-content:center;margin-bottom:44px}
+.auth-loading h1{font:400 clamp(25px,4vw,34px)/1.25 var(--serif);letter-spacing:-.5px;margin:22px 0 12px}
+#auth-loading-message{font-size:14px;line-height:1.6;color:var(--muted);min-height:23px;margin:0;overflow-wrap:anywhere}
+.auth-spinner{width:28px;height:28px;border:2px solid #e1d7c9;border-top-color:var(--accent);border-radius:50%;margin:auto;animation:auth-turn .9s linear infinite}
+.auth-loading[aria-busy=false] .auth-spinner{display:none}
+#auth-loading-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:24px}
+#auth-loading-actions button{min-height:44px}
+.remember-help{font-size:12px;color:var(--muted);margin:-12px 0 0 28px;line-height:1.5}
+#yandex-signin .yandex-logo{width:24px;height:24px;display:block;flex:none}
+@keyframes auth-turn{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.auth-spinner{animation:none;border-style:dotted}}
+@media(orientation:landscape) and (max-height:520px){.auth-loading{padding-block:20px}.auth-loading .brand{margin-bottom:20px}}

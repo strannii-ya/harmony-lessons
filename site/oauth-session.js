@@ -1,4 +1,4 @@
-/** Supabase PKCE + opt-in session persistence. Only Supabase sessions are stored, never upstream provider tokens. */
+/** Supabase PKCE + explicit session persistence. Only Supabase sessions are stored, never upstream provider tokens. */
 export const OAUTH_SETUP_MESSAGE = 'Google-вход ещё не включён в Supabase. Нужна разовая настройка Google Client ID и Client Secret в Authentication → Sign In / Providers → Google.';
 export const YANDEX_SETUP_MESSAGE = 'Яндекс-вход ещё не настроен. Владелец должен подключить custom:yandex в Supabase. Вход через Google работает отдельно.';
 const PROVIDERS = Object.freeze({
@@ -26,12 +26,14 @@ export function authFailure(code, provider='google') {
     return 'Сервис не подтвердил подходящий адрес почты. Проверь основной email аккаунта и приглашение в учебник.';
   return `Не удалось завершить вход через ${label}. Нажми кнопку входа заново в этом браузере.`;
 }
+export const isTransientAuthError = e => e?.status === 0 || e?.status === 408 || e?.status === 429 || e?.status >= 500;
+function sessionError(message='Сессия завершена. Войди снова.') { return Object.assign(new Error(message), {status:401, authExpired:true}); }
 function storage(name) { try { return globalThis[name]; } catch { return null; } }
 function get(store, key) { try { return store?.getItem(key) ?? null; } catch { return null; } }
 function remove(store, key) { try { store?.removeItem(key); } catch { /* already unavailable */ } }
 function set(store, key, value) {
   try { if (!store) throw new Error(); store.setItem(key, value); }
-  catch { throw new Error('Браузер запретил сохранение входа. Разреши данные сайта или отключи «Запомнить на этом устройстве».'); }
+  catch { throw Object.assign(new Error('Браузер запретил сохранение входа. Разреши данные сайта или отключи «Запомнить на этом устройстве».'), {status:0}); }
 }
 function cleanCallback() {
   const url = new URL(location.href);
@@ -49,11 +51,15 @@ export class AuthSession {
     this.pkceKey = this.sessionKey + '.pkce';
     this.session = null;
     this.refreshing = null;
+    this.epoch = 0;
+    this.stopRefresh = null;
   }
   get remembers() { return get(storage('localStorage'), this.preferenceKey) === 'true'; }
+  // The login form recommends persistence, but existing temporary sessions are never promoted silently.
+  get rememberChoice() { return get(storage('localStorage'), this.preferenceKey) !== 'false'; }
   setRemember(value) {
     if (value) set(storage('localStorage'), this.preferenceKey, 'true');
-    else remove(storage('localStorage'), this.preferenceKey);
+    else set(storage('localStorage'), this.preferenceKey, 'false');
     if (this.session) this.store(this.session);
   }
   store(input) {
@@ -68,7 +74,8 @@ export class AuthSession {
     this.session = session;
   }
   clear() {
-    this.session = null;
+    this.epoch++;this.stopAutoRefresh();
+    this.session = null;this.membership=null;
     remove(storage('sessionStorage'), this.sessionKey);
     remove(storage('localStorage'), this.sessionKey);
     remove(storage('sessionStorage'), LEGACY_SESSION);
@@ -79,23 +86,54 @@ export class AuthSession {
     try { const s = raw ? JSON.parse(raw) : null; return s?.access_token && s?.refresh_token ? s : null; }
     catch { this.clear(); return null; }
   }
-  async ensureSession() {
-    if (!this.session) throw new Error('Войди в свой кабинет.');
-    if (Number(this.session.expires_at) > Date.now()/1000 + 60) return;
+  async ensureSession({force=false,rejectedToken=null}={}) {
+    if (!this.session) throw sessionError();
+    const fresh=s=>Number(s?.expires_at)>Date.now()/1000+60;
+    if (!force && fresh(this.session)) return;
     if (!this.refreshing) {
-      const refresh = async () => {
-        // Use a refresh another tab may have completed while this tab waited for its lock.
-        const saved = this.saved();
-        if (saved && Number(saved.expires_at) > Date.now()/1000 + 60) { this.session=saved; return; }
-        if (saved) this.session=saved;
-        try { this.store(await this.request('/auth/v1/token?grant_type=refresh_token', {method:'POST', body:{refresh_token:this.session.refresh_token}})); }
-        catch(e) { if ([400,401,403].includes(e.status)) this.clear(); throw e; }
+      const epoch=this.epoch;
+      const refresh=async()=>{
+        if(epoch!==this.epoch || !this.session)throw sessionError();
+        // Read after taking the cross-tab lock: rotating a stale refresh token can revoke a session.
+        const saved=this.saved();
+        if(saved)this.session=saved;
+        if(fresh(this.session)&&(!force||(rejectedToken&&this.session.access_token!==rejectedToken)))return;
+        const previous=this.session;
+        try {
+          const next=await this.request('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:previous.refresh_token}});
+          if(epoch!==this.epoch || !this.session)throw sessionError();
+          if(this.session.refresh_token===previous.refresh_token)this.store(next);
+        } catch(e) {
+          // A failed old request must never erase a newer session, or revive a logged-out one.
+          const latest=this.saved();
+          if(epoch===this.epoch&&latest&&latest.refresh_token!==previous.refresh_token&&fresh(latest)){this.session=latest;return;}
+          if(epoch===this.epoch&&[400,401,403].includes(e.status)){this.clear();e.authExpired=true;}
+          throw e;
+        }
       };
       const locks=globalThis.navigator?.locks;
-      this.refreshing=(locks ? locks.request(this.sessionKey+'.refresh', refresh) : refresh()).finally(()=>{this.refreshing=null;});
+      this.refreshing=(locks?locks.request(this.sessionKey+'.refresh',refresh):refresh()).finally(()=>{this.refreshing=null;});
     }
     await this.refreshing;
   }
+  startAutoRefresh(onExpired=()=>{}) {
+    this.stopAutoRefresh();
+    const env=globalThis,doc=env.document;
+    if(!doc||!env.addEventListener)return;
+    let busy=false,stopped=false;
+    const check=async()=>{
+      if(stopped||busy||!this.session||doc.visibilityState==='hidden'||env.navigator?.onLine===false)return;
+      busy=true;
+      try{await this.ensureSession();}catch(e){if(e.authExpired&&!this.session)onExpired(e);}
+      finally{busy=false;}
+    };
+    const timer=setInterval(check,30000);timer.unref?.();
+    for(const name of ['focus','online','pageshow'])env.addEventListener(name,check);
+    doc.addEventListener('visibilitychange',check);
+    this.stopRefresh=()=>{stopped=true;clearInterval(timer);for(const name of ['focus','online','pageshow'])env.removeEventListener(name,check);doc.removeEventListener('visibilitychange',check);};
+    return this.stopRefresh;
+  }
+  stopAutoRefresh(){this.stopRefresh?.();this.stopRefresh=null;}
   async googleUrl(options={}) { return this.oauthUrl('google',options); }
   async yandexUrl(options={}) { return this.oauthUrl('yandex',options); }
   async oauthUrl(provider,{remember=false}={}) {
@@ -137,15 +175,17 @@ export class AuthSession {
       try { const value=JSON.parse(get(storage('sessionStorage'),this.pkceKey)||'null');if(PROVIDERS[value?.provider])provider=value.provider; } catch {}
       cleanCallback();remove(storage('sessionStorage'),this.pkceKey);throw new Error(authFailure(error,provider));
     }
-    const code=query.get('code');
+    let pending; try { pending=JSON.parse(get(storage('sessionStorage'),this.pkceKey)||'null'); } catch { pending=null; }
+    const code=query.get('code')||pending?.authCode;
     if (code) {
-      let pending; try { pending=JSON.parse(get(storage('sessionStorage'),this.pkceKey)||'null'); } catch { pending=null; }
       cleanCallback();
-      remove(storage('sessionStorage'),this.pkceKey);
-      if (!pending || !/^[A-Za-z0-9_-]{43}$/.test(pending.verifier) || pending.redirectTo!==location.origin+location.pathname || Date.now()-pending.startedAt>600000 || !Number.isFinite(pending.startedAt) || pending.startedAt>Date.now() || code.length>4096 || (pending.provider!==undefined&&!Object.hasOwn(PROVIDERS,pending.provider)))
+      if (!pending || !/^[A-Za-z0-9_-]{43}$/.test(pending.verifier) || pending.redirectTo!==location.origin+location.pathname || Date.now()-pending.startedAt>600000 || !Number.isFinite(pending.startedAt) || pending.startedAt>Date.now() || typeof code!=='string' || code.length>4096 || (pending.provider!==undefined&&!Object.hasOwn(PROVIDERS,pending.provider))) {
+        remove(storage('sessionStorage'),this.pkceKey);
         throw new Error('Вход начат в другой вкладке или истёк. Нажми нужную кнопку входа здесь заново.');
-      try { this.store(await this.request('/auth/v1/token?grant_type=pkce',{method:'POST',body:{auth_code:code,code_verifier:pending.verifier}})); }
-      catch(e) { this.clear(); throw new Error(e.status===0 ? e.message : authFailure(e.code,pending.provider||'google')); }
+      }
+      set(storage('sessionStorage'),this.pkceKey,JSON.stringify({...pending,authCode:code}));
+      try { this.store(await this.request('/auth/v1/token?grant_type=pkce',{method:'POST',body:{auth_code:code,code_verifier:pending.verifier}}));remove(storage('sessionStorage'),this.pkceKey); }
+      catch(e) { if(isTransientAuthError(e))throw e;this.clear();throw new Error(authFailure(e.code,pending.provider||'google')); }
     } else if (hash.has('access_token')) {
       // Compatibility for the existing email-link flow; it still needs server-side identity and membership checks.
       cleanCallback();
@@ -158,7 +198,7 @@ export class AuthSession {
       return user;
     } catch(e) {
       // A temporary network error must not destroy a valid remembered session.
-      if (e.status!==0 && !(e.status>=500)) this.clear();
+      if (!isTransientAuthError(e)) this.clear();
       throw e;
     }
   }

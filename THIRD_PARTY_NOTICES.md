@@ -13,3 +13,10 @@ Source: https://notofonts.github.io/noto-docs/specimen/NotoMusic/
 License: https://openfontlicense.org/open-font-license-official-text/
 
 The Noto-based renderer is retained independently in notation-legacy.js for rollback and baseline regression tests; it is not used by the application.
+
+# Yandex sign-in logo
+
+The red round Yandex logo in site/index.html uses the original vector artwork from Yandex ID's official sign-in button design guidelines (round 44 x 44 variant, scaled uniformly). Its geometry and brand colours are unmodified. It identifies the actual Yandex sign-in provider and does not imply endorsement.
+
+Source: https://yandex.ru/dev/id/doc/ru/codes/buttons-design
+Yandex and the Yandex logo are trademarks of their respective owner.

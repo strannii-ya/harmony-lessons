@@ -1,4 +1,5 @@
-import { LibraryAPI } from './api.js';
+import { getLibraryAPI } from './auth-client.js';
+import { loading,login } from './auth-screen.js';
 const google=document.querySelector('#google-signin'),yandex=document.querySelector('#yandex-signin');
 const buttons=[google,yandex].filter(Boolean),status=document.querySelector('#google-status'),remember=document.querySelector('#remember');
 let api,busy=false;
@@ -6,10 +7,8 @@ const say=text=>{status.textContent=text;};
 const unlock=()=>{busy=false;for(const b of buttons){b.disabled=!api?.configured;b.removeAttribute('aria-busy');}};
 async function init(){
  try {
-  const response=await fetch('./config.json',{cache:'no-store'});
-  if(!response.ok)throw new Error('Не удалось загрузить настройки входа. Обнови страницу.');
-  api=new LibraryAPI(await response.json());
-  unlock();remember.checked=api.remembers;
+  api=await getLibraryAPI();
+  unlock();remember.checked=api.rememberChoice;
   if(!api.configured)say('Подключение библиотеки пока не настроено.');
  }catch(e){say(e.message);for(const b of buttons)b.disabled=true;}
 }
@@ -19,12 +18,13 @@ async function start(provider,button){
  button.setAttribute('aria-busy','true');say(provider==='google'?'Проверяю Google-вход…':'Проверяю вход через Яндекс…');
  try{
   const url=await (provider==='google'?api.googleUrl({remember:remember.checked}):api.yandexUrl({remember:remember.checked}));
-  say(provider==='google'?'Открываю выбор Google-аккаунта…':'Открываю Яндекс ID…');location.assign(url);
+  loading(provider==='google'?'Открываем Google…':'Открываем Яндекс ID…');location.assign(url);
  }catch(e){say(e.message);unlock();}
 }
 google?.addEventListener('click',()=>start('google',google));
 yandex?.addEventListener('click',()=>start('yandex',yandex));
 remember.addEventListener('change',()=>{try{api?.setRemember(remember.checked);}catch(e){remember.checked=false;say(e.message);}});
-window.addEventListener('pageshow',()=>{if(api?.configured)unlock();});
-window.addEventListener('storage',e=>{if(api&&e.storageArea===localStorage&&e.key===api.sessionKey&&e.newValue===null&&!document.querySelector('#shell').hidden)location.reload();});
+window.addEventListener('pageshow',event=>{if(api?.configured){unlock();if(event.persisted&&document.querySelector('#shell').hidden)login();}});
+for(const id of ['retry-auth','choose-login'])document.getElementById(id)?.addEventListener('click',()=>{if(!api)init();});
+window.addEventListener('online',()=>{if(!api)init();});
 init();

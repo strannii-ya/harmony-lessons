@@ -7,20 +7,21 @@
 <meta name="harmony-release" content="2026-10-18-yandex-oauth">
 <title>Гармония — личный учебник</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./mobile.css">
-<link rel="stylesheet" href="./google.css"><link rel="stylesheet" href="./score.css"><link rel="stylesheet" href="./theory.css"><link rel="stylesheet" href="./chord-guide.css"><link rel="stylesheet" href="./light.css"><link rel="stylesheet" href="./access.css"><link rel="stylesheet" href="./library.css"><link rel="stylesheet" href="./modes.css"><link rel="stylesheet" href="./paper.css">
+<link rel="stylesheet" href="./google.css"><link rel="stylesheet" href="./score.css"><link rel="stylesheet" href="./theory.css"><link rel="stylesheet" href="./chord-guide.css"><link rel="stylesheet" href="./light.css"><link rel="stylesheet" href="./access.css"><link rel="stylesheet" href="./library.css"><link rel="stylesheet" href="./modes.css"><link rel="stylesheet" href="./paper.css"><link rel="stylesheet" href="./auth-screen.css">
 <script type="module" src="./google.js"></script>
 <script type="module" src="./app.js"></script><script type="module" src="./mobile.js"></script>
 </head>
 <body>
 <a class="skip" href="#content">К содержанию</a>
-<section id="gate" class="gate">
+<section id="auth-loading" class="auth-loading" aria-busy="true" aria-labelledby="auth-loading-title"><div class="auth-loading-content"><div class="brand"><span class="brandmark">h.</span><div>Гармония</div></div><div class="auth-spinner" aria-hidden="true"></div><h1 id="auth-loading-title">Открываем учебник…</h1><p id="auth-loading-message" role="status" aria-live="polite"></p><div id="auth-loading-actions" hidden><button id="retry-auth" type="button">Повторить</button><button id="choose-login" type="button">К выбору аккаунта</button></div></div></section>
+<section id="gate" class="gate" hidden>
  <div class="gate-art" aria-hidden="true"><div class="motif"><span></span><span></span><span></span><span></span><span></span><b>♮</b></div></div>
  <div class="gate-copy"><div class="brand"><span class="brandmark">h.</span><div>Гармония</div></div>
  <h1>Вход</h1>
  <section class="google-login" aria-label="Способ входа">
  <button id="google-signin" class="google-button" type="button" disabled aria-describedby="google-status"><svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M21.8 12.2c0-.7-.1-1.4-.2-2.1H12v3.8h5.5a4.7 4.7 0 0 1-2 3.1c-1 .6-2.2.9-3.5.9a6 6 0 1 1 4.1-10.4l2.9-2.8A10 10 0 1 0 12 22c2.7 0 5-.9 6.7-2.5 1.9-1.8 3.1-4.3 3.1-7.3Z"/></svg>Войти через Google</button>
- <button id="yandex-signin" class="google-button yandex-button" type="button" disabled aria-describedby="google-status"><span class="yandex-mark" aria-hidden="true">Я</span>Войти через Яндекс</button>
- <label class="remember-label"><input type="checkbox" id="remember">Запомнить на этом устройстве</label>
+ <button id="yandex-signin" class="google-button yandex-button" type="button" disabled aria-describedby="google-status"><svg class="yandex-logo" aria-hidden="true" focusable="false" width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="44" height="44" rx="22" fill="#FC3F1D"/><path d="M25.2438 12.3208H23.0173C19.2005 12.3208 17.292 14.2292 17.292 17.0919C17.292 20.2726 18.5643 21.863 21.427 23.7714L23.6535 25.3618L17.292 35.222H12.2029L18.2463 26.316C14.7475 23.7714 12.839 21.5449 12.839 17.41C12.839 12.3208 16.3378 8.82202 23.0173 8.82202H29.6969V35.222H25.2438V12.3208Z" fill="white"/></svg>Войти через Яндекс</button>
+ <label class="remember-label"><input type="checkbox" id="remember" checked>Запомнить на этом устройстве</label><p class="remember-help">На чужом устройстве снимите галочку.</p>
  <p id="google-status" class="google-note" role="status" aria-live="polite"></p>
  </section>
  <details class="email-fallback"><summary>Вход по почте</summary>

@@ -10,13 +10,15 @@ import { guideHTML, mountGuide } from './chord-guide.js';
 import { KEYS, transposeKey } from './music.js';
 import { renderScore, clearScores } from './notation.js';
 import { Player } from './audio.js';
-import { LibraryAPI } from './api.js';
+import { getLibraryAPI } from './auth-client.js';
+import { isTransientAuthError } from './oauth-session.js';
+import { loading,ready,login,loadingError } from './auth-screen.js';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const courseText=s=>esc(academicKeyNames(s));
 const state={data:null,user:null,view:'course',lesson:1,pattern:'chords',selected:null,settings:new Map(),loop:false,bpm:72,hand:'both',search:'',filter:'all',collection:'all',genre:'all'};
 const player=new Player(),explainVoicing=makeVoicingHint();let api,toastTimer;
 const notify=s=>{clearTimeout(toastTimer);$('#toast').textContent=s;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,5000);};
-const protect=fn=>async(...args)=>{try{await fn(...args);}catch(e){console.error(e.message);notify(e.message||'Не удалось выполнить действие');}};
+const protect=fn=>async(...args)=>{try{await fn(...args);}catch(e){if(e.authExpired)exitToLogin('Сессия завершена. Войди снова.');else notify(e.message||'Не удалось выполнить действие');}};
 const lessonBy=id=>state.data.lessons.find(l=>String(l.id)===String(id));
 const exerciseBy=id=>state.data.exercises.find(e=>e.id===id);
 const exercisesFor=id=>state.data.exercises.filter(e=>String(e.lesson_id)===String(id));
@@ -110,16 +112,57 @@ document.addEventListener('click',protect(async ev=>{
  if(b.id==='print'){player.stop();window.print();}
  if(b.id==='save-notes'){b.disabled=true;try{await persistProgress({notes:$('#notes').value});$('#note-status').textContent='Сохранено';}finally{b.disabled=false;}}
  if(b.id==='complete'){const completed=!progressFor(state.lesson)?.completed;await persistProgress({completed});b.textContent=completed?'✓ Пройдено':'Отметить пройденным';b.setAttribute('aria-pressed',completed);}
- if(b.id==='signout'){clearModes();player.stop();clearScores();let remoteError;try{await api.signOut();}catch(e){remoteError=e;}state.data=null;state.user=null;state.settings.clear();$('[data-view=access]').hidden=true;$('#content').replaceChildren();$('#lesson-nav').replaceChildren();$('#player').hidden=true;$('#shell').hidden=true;$('#gate').hidden=false;$('#email').value='';$('#login-status').textContent=remoteError?'Сессия на этом устройстве очищена. Серверный выход не подтверждён: '+remoteError.message:'Вы вышли.';state.selected=null;}
+ if(b.id==='signout'){clearModes();player.stop();clearScores();let remoteError;try{await api.signOut();}catch(e){remoteError=e;}state.data=null;state.user=null;state.settings.clear();$('[data-view=access]').hidden=true;$('#content').replaceChildren();$('#lesson-nav').replaceChildren();$('#player').hidden=true;$('#shell').hidden=true;login();$('#email').value='';$('#login-status').textContent=remoteError?'Сессия на этом устройстве очищена. Серверный выход не подтверждён: '+remoteError.message:'Вы вышли.';state.selected=null;}
 }));
 document.addEventListener('change',protect(async ev=>{const t=ev.target;if(t.dataset.key){const e=exerciseBy(t.dataset.key);state.settings.set(e.id,{...settings(e),tonic:t.value});await refreshExercise(e.id);}if(t.id==='pattern'){state.pattern=t.value;player.stop();document.querySelectorAll('.exercise').forEach(d=>draw(d.dataset.eid));}if(t.id==='hand'){state.hand=t.value;if(player.running)await startPlayback(state.selected);}if(t.id==='filter'){state.filter=t.value;if(t.value!=='all'){state.genre='all';$('#genre-filter').value='all';}renderResults();}if(t.id==='genre-filter'){state.genre=t.value;if(t.value!=='all'){state.filter='all';$('#filter').value='all';}renderResults();}}));
 $('#tempo').addEventListener('input',ev=>{state.bpm=Number(ev.target.value);$('#tempo-value').textContent=state.bpm;});$('#tempo').addEventListener('change',protect(async()=>{if(player.running)await startPlayback(state.selected);}));
 document.addEventListener('input',ev=>{if(ev.target.id==='search'){state.search=ev.target.value;renderResults();}});
 document.addEventListener('keydown',ev=>{if(ev.code==='Space'&&!['INPUT','TEXTAREA','SELECT','BUTTON','SUMMARY'].includes(document.activeElement.tagName)&&state.selected){ev.preventDefault();if(player.running)player.stop();else protect(startPlayback)(state.selected);}if(ev.key==='Escape'){document.body.classList.remove('menu-open');player.stop();}});
-async function enter(user){state.user=user;state.data=await api.load();if(!state.data.lessons?.length)throw new Error('Личная библиотека пока не заполнена. Вход подтверждён, материалы ещё не загружены.');$('#gate').hidden=true;$('#shell').hidden=false;const m=/^#lesson-(\d+)$/.exec(location.hash);if(m){state.view='lesson';state.lesson=Number(m[1]);}else if(['#reference','#modes','#library','#favorites','#access'].includes(location.hash)){state.view=location.hash.slice(1);}render();}
+async function enter(user){const epoch=api.epoch,data=await api.load();if(epoch!==api.epoch||!api.session)throw Object.assign(new Error('Сессия завершена. Войди снова.'),{status:401,authExpired:true});state.user=user;state.data=data;if(!state.data.lessons?.length)throw new Error('Личная библиотека пока не заполнена. Вход подтверждён, материалы ещё не загружены.');$('#gate').hidden=true;$('#shell').hidden=false;const m=/^#lesson-(\d+)$/.exec(location.hash);if(m){state.view='lesson';state.lesson=Number(m[1]);}else if(['#reference','#modes','#library','#favorites','#access'].includes(location.hash)){state.view=location.hash.slice(1);}render();ready();api.startAutoRefresh(()=>exitToLogin('Сессия завершена. Войди снова.'));}
 $('#login-form').addEventListener('submit',async ev=>{ev.preventDefault();const b=$('#send');b.disabled=true;try{await api.send($('#email').value);$('#login-status').textContent='Открой ссылку из нового письма.';$('#code-form').hidden=false;}catch(e){$('#login-status').textContent=e.message;}finally{setTimeout(()=>b.disabled=!api.configured,60000);}});
-$('#code-form').addEventListener('submit',async ev=>{ev.preventDefault();const b=ev.target.querySelector('button');b.disabled=true;try{await enter(await api.verify($('#email').value,$('#code').value));}catch(e){$('#login-status').textContent=e.message;}finally{b.disabled=false;}});
-(async()=>{try{const c=await fetch('./config.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Настройки сайта недоступны');return r.json();});api=new LibraryAPI(c);$('#send').disabled=!api.configured;
- $('#login-status').textContent=api.configured?'':'Библиотека не подключена.';
- if(api.configured){const user=await api.restore();if(user)await enter(user);}
- }catch(e){$('#login-status').textContent=e.message;$('#send').disabled=true;}})();
+$('#code-form').addEventListener('submit',async ev=>{
+ ev.preventDefault();const b=ev.target.querySelector('button');b.disabled=true;loading('Проверяем вход…');
+ try{await enter(await api.verify($('#email').value,$('#code').value));}
+ catch(e){if(isTransientAuthError(e))loadingError(e.message);else login(e.message);}
+ finally{b.disabled=false;}
+});
+function exitToLogin(message){
+ clearModes();player.stop();clearScores();api?.stopAutoRefresh();
+ state.data=null;state.user=null;state.selected=null;state.settings.clear();
+ document.body.classList.remove('menu-open');
+ $('#content').replaceChildren();$('#lesson-nav').replaceChildren();
+ $('[data-view=access]').hidden=true;$('#player').hidden=true;$('#shell').hidden=true;
+ login(message);
+}
+let booting=false;
+async function bootstrap(){
+ if(booting)return;booting=true;
+ loading(new URLSearchParams(location.search).has('code')?'Завершаем вход…':'Открываем учебник…');
+ try{
+  api=await getLibraryAPI();$('#send').disabled=!api.configured;
+  if(!api.configured){login('Библиотека не подключена.');return;}
+  const user=await api.restore();
+  if(user){loading('Загружаем уроки…');await enter(user);}else login();
+ }catch(e){if(isTransientAuthError(e))loadingError(e.message);else login(e.message);}
+ finally{booting=false;}
+}
+$('#retry-auth').addEventListener('click',bootstrap);
+$('#choose-login').addEventListener('click',()=>login());
+// Changes in other tabs should not re-run OAuth or wipe valid refresh tokens.
+window.addEventListener('storage',event=>{
+ if(!api||event.key!==api.sessionKey)return;
+ const current=api.session;
+ if(!event.newValue){
+  if(!sessionStorage.getItem(api.sessionKey)){api.clear();exitToLogin('Вход завершён в другой вкладке.');}
+  return;
+ }
+ if(!api.remembers)return;
+ let next;try{next=JSON.parse(event.newValue);}catch{return;}
+ if(!next?.access_token||!next?.refresh_token)return;
+ // Unverified sub is only a signal to reload; identity and RLS still grant all access.
+ const subject=token=>{try{return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub;}catch{return null;}};
+ if(subject(current?.access_token)&&subject(next.access_token)!==subject(current.access_token)){location.reload();return;}
+ api.session=next;
+});
+window.addEventListener('online',()=>{if(!$('#auth-loading-actions').hidden)bootstrap();});
+bootstrap();
