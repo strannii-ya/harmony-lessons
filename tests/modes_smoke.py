@@ -48,7 +48,8 @@ async def scenario(engine,w,h,base):
   assert not await page.locator('[data-view=access]').is_visible()
   assert await page.locator('.mode-document ellipse').count()==0
   assert await page.locator('.mode-document .vf-timesignature,.mode-document .vf-keysignature').count()==0
-  assert await page.locator('.mode-score + .mode-actions').count()==44
+  # Controls still follow the score; the intentional footer now groups them with the explanation.
+  assert await page.locator('.mode-score + .mode-footer > .mode-actions').count()==44
   assert await page.locator('.mode-card details[open]').count()==0
   await fits()
   await page.evaluate('''async()=>{const v=(await (await fetch('./version.json')).json()).version;const {Player}=await import('./audio.js?v='+v);const play=Player.prototype.play;window.modePlays=[];Player.prototype.play=function(s,o){window.modePlays.push(JSON.parse(JSON.stringify(s)));window.modePlayer=this;return play.call(this,s,o)};}''')
