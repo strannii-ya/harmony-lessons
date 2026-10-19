@@ -21,6 +21,11 @@ async function start(provider,button){
   loading(provider==='google'?'Открываем Google…':'Открываем Яндекс ID…');location.assign(url);
  }catch(e){say(e.message);unlock();}
 }
+// Email fallback must honour the same visible persistence choice as OAuth.
+document.querySelector('#code-form').addEventListener('submit',event=>{
+ try{api?.setRemember(remember.checked);}
+ catch(e){event.preventDefault();event.stopImmediatePropagation();say(e.message);}
+},{capture:true});
 google?.addEventListener('click',()=>start('google',google));
 yandex?.addEventListener('click',()=>start('yandex',yandex));
 remember.addEventListener('change',()=>{try{api?.setRemember(remember.checked);}catch(e){remember.checked=false;say(e.message);}});

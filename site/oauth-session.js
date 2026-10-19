@@ -59,7 +59,7 @@ export class AuthSession {
   get rememberChoice() { return get(storage('localStorage'), this.preferenceKey) !== 'false'; }
   setRemember(value) {
     if (value) set(storage('localStorage'), this.preferenceKey, 'true');
-    else set(storage('localStorage'), this.preferenceKey, 'false');
+    else { try { set(storage('localStorage'), this.preferenceKey, 'false'); } catch { remove(storage('localStorage'), this.preferenceKey); } }
     if (this.session) this.store(this.session);
   }
   store(input) {
@@ -97,6 +97,7 @@ export class AuthSession {
         // Read after taking the cross-tab lock: rotating a stale refresh token can revoke a session.
         const saved=this.saved();
         if(saved)this.session=saved;
+        if(epoch!==this.epoch || !this.session)throw sessionError();
         if(fresh(this.session)&&(!force||(rejectedToken&&this.session.access_token!==rejectedToken)))return;
         const previous=this.session;
         try {
