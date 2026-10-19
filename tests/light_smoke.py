@@ -93,7 +93,7 @@ async def scenario(engine,width,height,base,mode):
   await page.locator('[data-key]').first.select_option('C')
   await page.screenshot(path=str(OUT/f'light-lesson-{engine.name}-{width}x{height}.png'),full_page=True)
   if mode=='engraving':
-   await nav('reference');await expect(page.locator('.guide-card')).to_have_count(10)
+   await nav('reference');await expect(page.locator('.guide-card')).to_have_count(44)
    assert await page.locator('[data-score]').count()==0
    major=page.locator('[data-chord-type=major]');await major.locator('[data-inversion]').select_option('1')
    await expect(major.locator('[data-chord-name]')).to_have_text('C/E')
@@ -105,7 +105,7 @@ async def scenario(engine,width,height,base,mode):
    await expect(major.locator('[data-chord-name]')).to_have_text('D/F♯')
    await fits('guide')
    await page.screenshot(path=str(OUT/f'light-guide-{engine.name}-{width}x{height}.png'),full_page=True)
-   await page.reload();await expect(page.locator('.guide-card')).to_have_count(10)
+   await page.reload();await expect(page.locator('.guide-card')).to_have_count(44)
    assert page.url.endswith('#reference')
    await nav('library');await expect(page.locator('[data-score]')).to_have_count(3)
    assert await page.locator('.chord-guide').count()==0

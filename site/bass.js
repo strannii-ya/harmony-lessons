@@ -21,7 +21,7 @@ export function bassButtonLabel(visible){return visible?'Скрыть бас':'�
  * Visibility is purely visual and never changes playback or this event model.
  */
 export function compileExercise(exercise,options) {
- const score=compile(exercise.progression,options);
+ const score=compile(exercise.progression,{...options,...(exercise.theory?.meter?{meter:exercise.theory.meter}:{})});
  const offsets=exercise.theory?.notation?.bass_offsets;
  if(offsets===undefined)return options?.inversions?applyRightHandVoicings(score,{loop:exercise.loop===true}):score;
  if(!Array.isArray(offsets)||offsets.length!==score.bars.length||

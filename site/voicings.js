@@ -1,4 +1,4 @@
-import { mod, shiftNote } from './music.js';
+import { mod, shiftNote, compactTones, arpeggioPattern } from './music.js';
 
 /** Right-hand position planning, NOT a rewrite of harmonic inversion (which is set by bass).
  * Every candidate contains each chord tone exactly once in close position within an octave.
@@ -13,9 +13,9 @@ const exact=(a,b)=>a.length===b.length&&a.every((n,i)=>n.midi===b[i].midi);
 const moveCost=d=>d+.18*Math.max(0,d-2)**2;
 
 export function voicingCandidates(bar) {
- const tones=bar.tones;
- if(!Array.isArray(tones)||![3,4].includes(tones.length)||new Set(tones.map(n=>mod(n.midi))).size!==tones.length)
-  throw new Error('Для подбора расположений нужно трезвучие или септаккорд.');
+ const tones=compactTones(bar.tones);
+ if(!Array.isArray(tones)||![2,3,4,5].includes(tones.length)||new Set(tones.map(n=>mod(n.midi))).size!==tones.length)
+  throw new Error('Для одной руки поддерживается от двух до пяти разных аккордовых тонов.');
  const result=[];
  for(let inversion=0;inversion<tones.length;inversion++) {
   const rotated=[...tones.slice(inversion),...tones.slice(0,inversion).map(n=>shiftNote(n,12))];
@@ -32,7 +32,7 @@ export function voicingCandidates(bar) {
  return result.sort((a,b)=>a.notes[0].midi-b.notes[0].midi||a.inversion-b.inversion);
 }
 
-/** Ordered voice matching. A 3-to-4 tone transition may split one voice; no tone is omitted. */
+/** Ordered voice matching. A transition between two-to-five tone chords may split voices; no tone is omitted. */
 export function transitionCost(a,b) {
  const left=a.notes||a,right=b.notes||b;
  if(exact(left,right))return 0;
@@ -42,10 +42,10 @@ export function transitionCost(a,b) {
  let movement=Infinity;
  if(short.length===long.length)movement=short.reduce((s,n,i)=>s+moveCost(Math.abs(n.midi-long[i].midi)),0);
  else {
-  for(let split=0;split<short.length;split++) {
-   const expanded=short.flatMap((n,i)=>i===split?[n,n]:[n]);
-   movement=Math.min(movement,expanded.reduce((s,n,i)=>s+moveCost(Math.abs(n.midi-long[i].midi)),0));
-  }
+  const dp=Array.from({length:short.length+1},()=>Array(long.length+1).fill(Infinity));dp[0][0]=0;
+  for(let i=1;i<=short.length;i++)for(let j=i;j<=long.length;j++)
+   dp[i][j]=moveCost(Math.abs(short[i-1].midi-long[j-1].midi))+Math.min(dp[i-1][j-1],dp[i][j-1]);
+  movement=dp[short.length][long.length];
  }
  const commonPC=left.filter(n=>right.some(m=>mod(n.midi)===mod(m.midi))).length;
  const held=left.filter(n=>right.some(m=>n.midi===m.midi)).length;
@@ -57,7 +57,7 @@ function positionCost(c) {
  return .18*Math.max(0,c.span-7)**2+.045*Math.abs(c.center-67);
 }
 function initialCost(c,bar) {
- const original=bar.tones.map((n,i)=>i<bar.inversion?shiftNote(n,12):n).sort((a,b)=>a.midi-b.midi);
+ const original=compactTones(bar.tones).map((n,i)=>i<bar.inversion?shiftNote(n,12):n).sort((a,b)=>a.midi-b.midi);
  let shift=0;
  while(mean(original)+shift>74)shift-=12;
  while(mean(original)+shift<62)shift+=12;
@@ -95,18 +95,11 @@ export function planRightHand(score,{loop=false}={}) {
  return best;
 }
 
-function arpeggioNotes(notes) {
- // Preserve the existing wide eight-note texture, starting on the selected chord member.
- // All seventh-chord tones are retained; "Обращения" never reduces seventh chords to triads.
- const upper=notes.at(-1);
- return [notes[0],notes[2],shiftNote(notes[1],12),shiftNote(upper,12),
-  shiftNote(notes[0],24),shiftNote(upper,12),shiftNote(notes[1],12),notes[2]];
-}
 export function applyRightHandVoicings(score,options={}) {
  const plan=planRightHand(score,options),replacements=new Map();
  const bars=score.bars.map((bar,i)=>{
   const chosen=plan.positions[i];
-  const line=score.pattern==='arpeggio'?arpeggioNotes(chosen.notes):null;
+  const line=score.pattern==='arpeggio'?arpeggioPattern(chosen.notes):null;
   const rh=bar.rh.map((e,j)=>{
    const next={...e,notes:line?[line[j%line.length]]:chosen.notes};
    replacements.set(e,next);return next;

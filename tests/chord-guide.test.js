@@ -7,7 +7,7 @@ import { renderScore, clearScores } from '../site/notation-legacy.js';
 test('every type/root/inversion preserves spelling, ordered pitches and root-relative pitch classes',()=>{
  for(const root of ROOTS)for(const type of TYPES)for(let i=0;i<type.semi.length;i++){
   const x=example(type.id,root,i);assert.equal(x.notes.length,type.semi.length);assert.equal(x.bass.letter,x.tones[i].letter);assert.equal(x.bass.alter,x.tones[i].alter);
-  assert.deepEqual(x.notes.map(n=>(n.midi-x.root.midi+120)%12).sort((a,b)=>a-b),type.semi);assert.ok(x.notes.every((n,j)=>!j||n.midi>x.notes[j-1].midi));
+  assert.deepEqual(x.notes.map(n=>(n.midi-x.root.midi+120)%12).sort((a,b)=>a-b),type.semi.map(n=>n%12).sort((a,b)=>a-b));assert.ok(x.notes.every((n,j)=>!j||n.midi>x.notes[j-1].midi));
   assert.equal(x.score.events.length,1);assert.equal(x.score.events[0].hand,'right');assert.equal(inversionNames(type.semi.length).length,type.semi.length);
   for(const width of [240,320,375,760,1440]){const l=layoutScore(x.score,width,{trebleOnly:true,showLabels:false});assert.ok(Number.isFinite(l.height));assert.equal(l.rows[0].bass,null);}
  }

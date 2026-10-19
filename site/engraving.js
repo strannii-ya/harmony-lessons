@@ -2,7 +2,7 @@
 import { VF } from './vexflow.js';
 import { asciiName, keyPitches } from './music.js';
 import { staffY, sameKey } from './score-layout.js';
-const DURATIONS=new Map([[4,'w'],[2,'h'],[1,'q'],[.5,'8']]);
+const DURATIONS=new Map([[4,'w'],[3,'h'],[2,'h'],[1,'q'],[.5,'8']]);
 const SIGNS=new Map([[-2,'bb'],[-1,'b'],[0,'n'],[1,'#'],[2,'##']]);
 export function vexKey(n){
  if(!Number.isInteger(n.letter)||n.letter<0||n.letter>6||!Number.isInteger(n.octave)||!SIGNS.has(n.alter))throw new Error('Неверное нотное написание');
@@ -14,7 +14,8 @@ export function makeVoice(events,bar,clef){
  const notes=events.map(event=>{
   const duration=DURATIONS.get(event.duration);
   if(!duration||!event.notes?.length)throw new Error('Неподдерживаемая длительность или пустой аккорд');
-  const note=new VF.StaveNote({keys:event.notes.map(vexKey),duration,clef,auto_stem:true});
+  const note=new VF.StaveNote({keys:event.notes.map(vexKey),duration,clef,auto_stem:true,dots:event.duration===3?1:0});
+  if(event.duration===3)VF.Dot.buildAndAttach([note],{all:true});
   // Validity is per written pitch and octave and resets at each bar line.
   // VexFlow determines the signs' engraved form, columns and optical spacing.
   event.notes.forEach((n,i)=>{
@@ -24,7 +25,7 @@ export function makeVoice(events,bar,clef){
   return note;
  });
  const voice=new VF.Voice({num_beats:bar.beats,beat_value:4}).addTickables(notes);
- const beams=notes.length>1?VF.Beam.generateBeams(notes,{groups:[new VF.Fraction(2,4)]}):[];
+ const beams=notes.length>1?VF.Beam.generateBeams(notes,{groups:[new VF.Fraction(bar.beats===3?1:2,4)]}):[];
  return {voice,notes,beams,events,clef};
 }
 export function prepareMeasure(bar,{first=false,previous=null,showBass=false,showMeter=false,showLabels=true}={}){
@@ -37,7 +38,7 @@ export function prepareMeasure(bar,{first=false,previous=null,showBass=false,sho
   stave.clef=i?'bass':'treble';
   if(first)stave.addClef(i?'bass':'treble');
   if(first||changed)stave.addKeySignature(keyName(bar),changed?keyName(previous):undefined);
-  if(showMeter)stave.addTimeSignature('4/4');
+  if(showMeter)stave.addTimeSignature(`${bar.meter||bar.beats}/4`);
  });
  right.notes.forEach(n=>n.setStave(staves[0]));left?.notes.forEach(n=>n.setStave(staves[1]));
  const voices=[right.voice,...(left?[left.voice]:[])],formatter=new VF.Formatter();
@@ -53,7 +54,7 @@ export function planEngraving(score,width,options={}){
  if(!score?.bars?.length||!Number.isFinite(width))throw new Error('Неверная партитура');
  width=Math.max(240,width);
  const showBass=options.showBass===true&&score.bars.every(b=>b.left?.notes?.length);
- const meter=options.showMeter!==false&&!score.noMeter&&score.bars.every(b=>b.beats===4);
+ const meter=options.showMeter!==false&&!score.noMeter&&score.bars.every(b=>b.beats===(score.bars[0].meter||score.bars[0].beats))&&[3,4].includes(score.bars[0].meter||score.bars[0].beats);
  const rows=[];let row={measures:[],used:0};
  for(let i=0;i<score.bars.length;i++){
   const bar=score.bars[i],previous=score.bars[i-1]||null;

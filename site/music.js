@@ -1,3 +1,4 @@
+import { extendedType } from './chord-types.js';
 /** A single spelled-pitch model drives notation, audio and MIDI. No hidden enharmonic replacement. */
 export const LETTERS=['C','D','E','F','G','A','B'];
 const PCS=[0,2,4,5,7,9,11], SCALE=[0,2,4,5,7,9,11];
@@ -12,13 +13,35 @@ export function asciiName(n){return LETTERS[n.letter]+(n.alter>0?'#'.repeat(n.al
 export function shiftNote(n,semitones){return at(n.letter,n.midi+semitones);}
 export function keyPitches(tonic,mode='major'){const t=pitch(tonic);return (mode==='minor'?[0,2,3,5,7,8,10]:SCALE).map((s,i)=>at(t.letter+i,t.midi+s));}
 export function normalizeSymbol(s){return String(s).replace(/♭/g,'b').replace(/♯/g,'#').replace(/°/g,'o').replace(/[⁶₆]/g,'6').replace(/[⁵₅]/g,'5').replace(/[⁴₄]/g,'4').replace(/[³₃]/g,'3').replace(/[²₂]/g,'2').replace(/[−–—]/g,'-').trim();}
+/** Octave reduction keeps spelling and all chord members. Used only for practical RH positions. */
+export function compactTones(tones){
+ const low=tones[0].midi;
+ return tones.map(n=>{let v=n;while(v.midi>=low+12)v=shiftNote(v,-12);return v;}).sort((a,b)=>a.midi-b.midi);
+}
+export function arpeggioPattern(tones){
+ if(tones.length===2){const [a,b]=tones;return [a,b,shiftNote(a,12),shiftNote(b,12),shiftNote(a,24),shiftNote(b,12),shiftNote(a,12),b];}
+ if(tones.length===5)return [tones[0],tones[2],shiftNote(tones[1],12),shiftNote(tones[3],12),shiftNote(tones[4],12),shiftNote(tones[3],12),shiftNote(tones[1],12),tones[2]];
+ if(tones.length>5)throw new Error('Для полного расширенного аккорда выбери аккордовую фактуру.');
+ return [tones[0],tones[2],shiftNote(tones[1],12),shiftNote(tones.at(-1),12),shiftNote(tones[0],24),shiftNote(tones.at(-1),12),shiftNote(tones[1],12),tones[2]];
+}
 /** Plain scale degrees always refer to the parallel major: minor uses bIII, bVI, bVII. */
 export function parseChord(symbol,tonic='C',mode='major'){
  const norm=normalizeSymbol(symbol);const [raw,target,...extra]=norm.split('/');if(extra.length)throw new Error('Неверный аккорд: '+symbol);
  let key=pitch(tonic), s=raw;
  if(target){const t=/^([b#]*)([ivIV]+)$/.exec(target);if(!t)throw new Error('Неверная побочная ступень');const d=ROMANS.indexOf(t[2].toUpperCase());if(d<0)throw new Error('Неверная ступень');key=at(key.letter+d,key.midi+SCALE[d]+[...t[1]].reduce((v,c)=>v+(c==='#'?1:-1),0));}
  const cadential=s==='K64';if(cadential)s=(mode==='minor'?'i':'I')+'64';
- const m=/^([b#]*)([ivIV]+)(maj|ø|o)?(65|64|43|42|7|6)?$/.exec(s);if(!m)throw new Error('Не поддерживается обозначение: '+symbol);
+ const m=/^([b#]*)([ivIV]+)(maj|ø|o)?(65|64|43|42|7|6)?$/.exec(s);
+ if(!m){
+  const extended=/^([b#]*)([ivIV]+)(.+)$/.exec(s);
+  const type=extended&&extendedType(extended[3],extended[2]===extended[2].toLowerCase());
+  if(!type)throw new Error('Не поддерживается обозначение: '+symbol);
+  const degree=ROMANS.indexOf(extended[2].toUpperCase());if(degree<0)throw new Error('Неверная ступень');
+  const alteration=[...extended[1]].reduce((v,c)=>v+(c==='#'?1:-1),0);
+  const original=at(key.letter+degree,key.midi+SCALE[degree]+alteration),root=at(original.letter,60+mod(original.midi));
+  const tones=type.semi.map((n,i)=>at(root.letter+type.steps[i],root.midi+n));
+  const bass=at(root.letter,36+mod(root.midi));
+  return {symbol,degree:degree+1,quality:type.degrees.includes('♭3')?'minor':'major',seventh:type.steps.includes(6),root,tones,bass,inversion:0,name:noteName(root)+type.suffix,cadential:false,extended:true};
+ }
  const degree=ROMANS.indexOf(m[2].toUpperCase());if(degree<0)throw new Error('Неверная ступень: '+symbol);
  const alteration=[...m[1]].reduce((v,c)=>v+(c==='#'?1:-1),0), suffix=m[4]||'', seventh=['7','65','43','42'].includes(suffix);
  const quality=m[3]==='o'?'dim':m[3]==='ø'?'half':m[2]===m[2].toLowerCase()?'minor':'major';
@@ -44,25 +67,24 @@ export function compile(progression,options={}){
   const data=typeof input==='string'?{symbol:input}:input;
   const localMode=data.mode||mode;
   const localTonic=data.offset===undefined?tonic:KEYS[localMode][mod(pitch(tonic).midi+data.offset)];
-  const c=parseChord(data.symbol,localTonic,localMode), beats=data.beats??4;
-  if(![1,2,4].includes(beats))throw new Error('Поддерживаются длительности 1, 2, 4 доли');
+  const c=parseChord(data.symbol,localTonic,localMode), beats=data.beats??options.meter??4;
+  if(![1,2,3,4].includes(beats))throw new Error('Поддерживаются длительности 1, 2, 3, 4 доли');
   if(data.bass)c.bass=bassDegree(data.bass,localTonic);
   if(options.pedal)c.bass=bassDegree(options.pedal,tonic);
   if(data.bass||options.pedal)c.name=c.name.split('/')[0]+(mod(c.bass.midi)!==mod(c.root.midi)?'/'+noteName(c.bass):'');
   const rh=[];if(pattern==='arpeggio'){
    const base=c.root.midi>65?-12:0;
-   const tones=c.tones.map(n=>shiftNote(n,base));
-   const n=[tones[0],tones[2],shiftNote(tones[1],12),shiftNote(tones[seventhIndex(c)],12),shiftNote(tones[0],24),shiftNote(tones[seventhIndex(c)],12),shiftNote(tones[1],12),tones[2]];
+   const tones=(c.extended?compactTones(c.tones):c.tones).map(n=>shiftNote(n,base));
+   const n=arpeggioPattern(tones);
    const count=beats*2;for(let i=0;i<count;i++){const ns=n[i];const e={hand:'right',notes:[ns],beat:beat+i*.5,duration:.5,index};events.push(e);rh.push(e);}
   }else{
-   const ns=c.tones.map((n,i)=>i<c.inversion?shiftNote(n,12):n).sort((a,b)=>a.midi-b.midi);
+   const ns=(c.extended?compactTones(c.tones):c.tones).map((n,i)=>i<c.inversion?shiftNote(n,12):n).sort((a,b)=>a.midi-b.midi);
    const e={hand:'right',notes:ns,beat,duration:beats,index};events.push(e);rh.push(e);
   }
   const left={hand:'left',notes:[c.bass],beat,duration:beats,index};events.push(left);
-  bars.push({...c,index,beat,beats,rh,left,tonic:localTonic,mode:localMode});beat+=beats;
+  bars.push({...c,index,beat,beats,rh,left,tonic:localTonic,mode:localMode,...(options.meter?{meter:options.meter}:{})});beat+=beats;
  });return {bars,events,totalBeats:beat,tonic,mode,pattern};
 }
-function seventhIndex(c){return c.seventh?3:2;}
 export function transposeKey(tonic,mode,delta){return KEYS[mode][mod(pitch(tonic).midi+delta)];}
 const variable=(n)=>{let b=[n&127];while(n>>=7)b.unshift((n&127)|128);return b;};
 export function midiBytes(score,bpm=72,hand='both'){
