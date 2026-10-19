@@ -1,7 +1,7 @@
 name: Verify and publish harmony notebook
 on:
   push:
-    branches: [main, engraving-vexflow, auth-yandex, rh-voicings, reference-genres]
+    branches: [main, engraving-vexflow, auth-yandex, rh-voicings, reference-genres, reference-modes]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -56,6 +56,8 @@ jobs:
         run: python tests/voicings_smoke.py
       - name: Verify extended reference and private genre collection
         run: python tests/library_smoke.py
+      - name: Verify modal reference, ascending notation and transposition
+        run: python tests/modes_smoke.py
       - name: Upload browser screenshots (synthetic data only)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -108,6 +110,7 @@ jobs:
                   assert './access.css?v='+version in html
                   assert 'data-view="reference"' in html
                   assert 'data-view="access"' in html
+                  assert 'data-view="modes"' in html and 'modes.css?v='+version in html
                   assert 'id="midi"' not in html
                   assert 'id="google-signin"' in html and 'id="yandex-signin"' in html
                   oauth=read('oauth-session.js?v='+version)
@@ -129,6 +132,10 @@ jobs:
                   assert "node('ellipse'" not in notation
                   assert 'VexFlow 4.2.5' in read('vendor/vexflow-bravura.js?v='+version)
                   assert 'bass_offsets' in read('bass.js?v='+version)
+                  assert 'mountModes' in app and 'clearModes' in app
+                  assert 'phrygian-dominant' in read('mode-types.js?v='+version)
+                  assert 'planModeNotation' in read('mode-notation.js?v='+version)
+                  assert 'data-scale-play' in read('modes.js?v='+version)
                   print('Verified live GitHub Pages:',base)
                   print('Published commit:',status['commit'])
                   print('Published asset version:',version)
