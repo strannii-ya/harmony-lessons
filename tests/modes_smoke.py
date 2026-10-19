@@ -1,5 +1,5 @@
-"""Synthetic identities only. Verify the actual notation, sound event model, filters and cleanup."""
-import asyncio,functools,threading,os
+"""Synthetic identities only. Verify actual notation, sound, filters and cleanup."""
+import asyncio,functools,threading,os,json
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from playwright.async_api import async_playwright,expect
@@ -26,7 +26,15 @@ async def scenario(engine,w,h,base):
  page=await context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  await page.add_init_script("sessionStorage.setItem('harmony.session',JSON.stringify({access_token:'synthetic',refresh_token:'synthetic',expires_at:4102444800}));")
  async def fits():
-  assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+  # Renderers resize in a requestAnimationFrame after ResizeObserver; inspect settled pixels.
+  await page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+  fits_width=await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+  if not fits_width:
+   diagnostics=await page.evaluate('''()=>({viewport:[innerWidth,innerHeight],scroll:[scrollX,scrollY],document:[document.documentElement.scrollWidth,document.body.scrollWidth],category:document.querySelector('[data-modes-category]')?.value,overflow:[...document.querySelectorAll('body *')].flatMap(e=>{const b=e.getBoundingClientRect(),s=getComputedStyle(e);return b.width&&b.right>innerWidth+1&&s.display!=='none'?[{tag:e.tagName,id:e.id,classes:e.getAttribute('class'),text:e.children.length?'':e.textContent.slice(0,100),left:b.left,right:b.right,width:b.width,cssWidth:s.width,minWidth:s.minWidth,position:s.position,transform:s.transform,overflowX:s.overflowX}]:[]}).slice(0,35)})''')
+   print('MODE_LAYOUT_DIAGNOSTIC',engine.name,w,h,json.dumps(diagnostics,ensure_ascii=False),flush=True)
+   (OUT/f'modes-overflow-{engine.name}-{w}x{h}.json').write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2))
+   await page.screenshot(path=str(OUT/f'modes-overflow-{engine.name}-{w}x{h}.png'),full_page=True)
+  assert fits_width,(engine.name,w,h,'Document overflow')
   geometry=await page.evaluate('''()=>[...document.querySelectorAll('.mode-document')].flatMap(svg=>{const v=svg.viewBox.baseVal,m=svg.getScreenCTM().inverse();return [...svg.querySelectorAll('.scale-pitch,.vf-accidental,.vf-clef,.vf-stem')].flatMap(n=>{const b=n.getBoundingClientRect(),a=new DOMPoint(b.left,b.top).matrixTransform(m),z=new DOMPoint(b.right,b.bottom).matrixTransform(m);return a.x< -1||a.y< -1||z.x>v.width+1||z.y>v.height+1?[{mode:svg.dataset.modeId,tonic:svg.dataset.tonic,note:n.dataset.note,classes:n.getAttribute('class'),a:[a.x,a.y],z:[z.x,z.y],view:[v.width,v.height]}]:[]});})''')
   if geometry:await page.screenshot(path=str(OUT/f'modes-geometry-error-{engine.name}-{w}x{h}.png'),full_page=True)
   assert not geometry,geometry[:8]
