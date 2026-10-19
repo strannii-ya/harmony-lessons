@@ -4,6 +4,18 @@ import { asciiName, keyPitches } from './music.js';
 import { staffY, sameKey } from './score-layout.js';
 const DURATIONS=new Map([[4,'w'],[3,'h'],[2,'h'],[1,'q'],[.5,'8']]);
 const SIGNS=new Map([[-2,'bb'],[-1,'b'],[0,'n'],[1,'#'],[2,'##']]);
+/** Shared by the planner and renderer so larger labels reserve real horizontal and vertical room. */
+export const SCORE_LABEL_STYLE=Object.freeze({symbolSize:21,nameSize:18,symbolY:32,nameY:58,topRoom:102});
+let labelContext;
+export function scoreLabelWidth(value,size,weight=400){
+ const text=String(value??'');
+ if(!text)return 0;
+ try{
+  if(!labelContext&&typeof document!=='undefined'&&typeof document.createElement==='function')labelContext=document.createElement('canvas').getContext('2d');
+  if(labelContext){labelContext.font=`${weight} ${size}px Georgia, serif`;const width=labelContext.measureText(text).width;if(Number.isFinite(width)&&width>0)return width;}
+ }catch{/* Non-browser model tests use the conservative estimate below. */}
+ return [...text].reduce((sum,c)=>sum+(/[MWmw@♯♭]/.test(c)?1:/[Iil1 .,'/]/.test(c)?.42:.78)*size,0);
+}
 export function vexKey(n){
  if(!Number.isInteger(n.letter)||n.letter<0||n.letter>6||!Number.isInteger(n.octave)||!SIGNS.has(n.alter))throw new Error('Неверное нотное написание');
  return asciiName(n).toLowerCase()+'/'+n.octave;
@@ -45,7 +57,7 @@ export function prepareMeasure(bar,{first=false,previous=null,showBass=false,sho
  formatter.joinVoices([right.voice]);if(left)formatter.joinVoices([left.voice]);
  const minNotes=formatter.preCalculateMinTotalWidth(voices);
  const prefix=Math.max(...staves.map(s=>s.getNoteStartX()))+8;
- const labelWidth=showLabels?Math.max([...String(bar.symbol)].length*8,[...String(bar.name)].length*7)+28:0;
+ const labelWidth=showLabels?Math.max(scoreLabelWidth(bar.symbol,SCORE_LABEL_STYLE.symbolSize,600),scoreLabelWidth(bar.name,SCORE_LABEL_STYLE.nameSize))+48:0;
  const musicWidth=Math.max(minNotes+24,bar.rh.length>1?bar.rh.length*26:52,labelWidth);
  return {bar,right,left,voices,staves,formatter,prefix,minimum:prefix+musicWidth+14,first,changed};
 }
@@ -69,7 +81,7 @@ export function planEngraving(score,width,options={}){
   const factor=ri<rows.length-1||r.measures.length>=3?(width-32)/r.used:Math.min((width-32)/r.used,1.35);
   let x=16;r.measures.forEach(m=>{m.x=x;m.width=m.minimum*factor;x+=m.width;});r.end=x;
   const right=r.measures.flatMap(m=>m.bar.rh.flatMap(e=>e.notes.map(n=>staffY(n))));
-  const labelRoom=options.showLabels===false?32:80;
+  const labelRoom=options.showLabels===false?32:SCORE_LABEL_STYLE.topRoom;
   r.treble=Math.max(labelRoom,labelRoom-Math.min(...right));
   if(showBass){
    const left=r.measures.flatMap(m=>m.bar.left.notes.map(n=>staffY(n,true)));

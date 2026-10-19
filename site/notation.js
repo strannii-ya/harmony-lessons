@@ -1,7 +1,7 @@
 import { keyLabel } from './key-labels.js';
 /** VexFlow + Bravura. One complete SVG per exercise; score data remains the audio source. */
 import { VF } from './vexflow.js';
-import { planEngraving } from './engraving.js';
+import { planEngraving, SCORE_LABEL_STYLE } from './engraving.js';
 import { noteName } from './music.js';
 const NS='http://www.w3.org/2000/svg',INK='#332f28',STAFF_INK='#8c857a';
 function node(tag,attrs={},value){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(value!==undefined)n.textContent=value;return n;}
@@ -70,9 +70,9 @@ function paint(container,score,forcedWidth,options={}){
    }
    if(options.showLabels!==false){
     const x=start+right.notes[0].getTickContext().getX();
-    label(measure,x,23,bar.symbol,15,{'font-weight':'600'});
-    if(bar.name)label(measure,x,42,bar.name,12,{fill:'#736c63',class:'score-caption'});
-    if(m.changed)label(measure,m.x+5,9,keyLabel(bar.tonic,bar.mode),9,{'font-family':'Arial, sans-serif',fill:'#736c63',class:'score-caption'});
+    label(measure,x,SCORE_LABEL_STYLE.symbolY,bar.symbol,SCORE_LABEL_STYLE.symbolSize,{'font-weight':'600',class:'score-degree'});
+    if(bar.name)label(measure,x,SCORE_LABEL_STYLE.nameY,bar.name,SCORE_LABEL_STYLE.nameSize,{fill:'#736c63',class:'score-caption score-chord'});
+    if(m.changed)label(measure,m.x+5,10,keyLabel(bar.tonic,bar.mode),10,{'font-family':'Arial, sans-serif',fill:'#736c63',class:'score-caption score-key-caption'});
    }
    ctx.closeGroup();
   }

@@ -39,3 +39,86 @@
   .guide-content > .guide-explanation { box-shadow: none; background: white; }
   .score-caption { fill: #514b43; }
 }
+
+/* One quiet control rhythm under every score. Visible glyphs are small;
+   the equal 44px touch targets are not. No boxed segments or raised buttons. */
+#content :is(.exercise-actions, .mode-actions) {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 4px 8px; min-width: 0; margin: 10px 0 8px;
+}
+#content :is(.exercise-actions, .mode-actions, .guide-actions) :is(button, select) {
+  box-sizing: border-box; height: 44px; min-height: 44px; max-height: 44px;
+  border: 0; border-radius: 6px; box-shadow: none;
+  background-color: transparent; color: var(--muted);
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  letter-spacing: 0; margin-block: 0;
+}
+#content :is(.exercise-actions, .mode-actions) button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; max-width: none; padding: 0 8px; gap: 6px;
+  flex-shrink: 0; line-height: 1; cursor: pointer;
+  transition: color .12s ease, background-color .12s ease;
+}
+#content :is(.exercise-actions, .mode-actions) .key-control {
+  display: flex; align-items: center; gap: 0;
+  flex: 0 1 auto; min-width: 0; height: 44px;
+  border: 0; background: transparent; box-shadow: none;
+}
+#content :is(.exercise-actions, .mode-actions, .guide-actions) select {
+  -webkit-appearance: none; appearance: none;
+  padding: 0 24px 0 10px; line-height: normal; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23736c63' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  font-size: 16px; color: var(--text);
+}
+#content .exercise-actions .key-control select {
+  width: 100px; min-width: 100px; max-width: 100px; flex: 0 0 100px;
+}
+#content .mode-actions .key-control select {
+  width: 82px; min-width: 82px; max-width: 82px; flex: 0 0 82px;
+}
+#content :is(.exercise-actions, .mode-actions) .key-control button {
+  width: 44px; min-width: 44px; max-width: 44px; flex: 0 0 44px;
+  padding: 0; font-size: 30px; font-weight: 400; color: var(--text);
+}
+#content :is(.exercise-actions, .mode-actions) .icon-play {
+  width: 44px; min-width: 44px; max-width: 44px; flex: 0 0 44px;
+  padding: 0; color: var(--accent); background: transparent; box-shadow: none;
+}
+#content :is(.exercise-actions, .mode-actions) .icon-play svg {
+  display: block; width: 26px; height: 26px;
+}
+#content .exercise-actions [data-bass] {
+  position: relative; width: 44px; min-width: 44px; max-width: 44px;
+  flex: 0 0 44px; padding: 0;
+}
+#content .exercise-actions .bass-control-icon { display: block; width: 26px; height: 30px; }
+#content .exercise-actions [data-bass]::after {
+  content: ''; position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; left: calc(50% - 1.5px); bottom: 3px; opacity: 0;
+}
+#content .exercise-actions [data-bass][aria-pressed="true"]::after { opacity: 1; }
+#content .exercise-actions [data-voicing] { white-space: nowrap; padding-inline: 4px 8px; }
+#content .exercise-actions [data-voicing]::before {
+  content: '✓'; display: inline-block; width: 13px; font-size: 13px; visibility: hidden;
+}
+#content .exercise-actions [data-voicing][aria-pressed="true"]::before { visibility: visible; }
+#content .exercise-actions [data-star] {
+  margin-left: auto; width: 44px; min-width: 44px; flex: 0 0 44px;
+  font-size: 24px; padding: 0; color: var(--caption);
+}
+#content :is(.exercise-actions, .mode-actions) button[aria-pressed="true"] {
+  color: var(--accent); background-color: transparent; box-shadow: none; border: 0;
+}
+#content :is(.exercise-actions, .mode-actions, .guide-actions) :is(button, select):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+#content :is(.exercise-actions, .mode-actions) button:disabled { opacity: .45; cursor: wait; }
+@media (hover: hover) {
+  #content :is(.exercise-actions, .mode-actions, .guide-actions) :is(button, select):hover {
+    background-color: #85533109; color: var(--accent); border: 0; box-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #content :is(.exercise-actions, .mode-actions) button { transition: none; }
+}
