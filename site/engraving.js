@@ -40,7 +40,7 @@ export function makeVoice(events,bar,clef){
  const beams=notes.length>1?VF.Beam.generateBeams(notes,{groups:[new VF.Fraction(bar.beats===3?1:2,4)]}):[];
  return {voice,notes,beams,events,clef};
 }
-export function prepareMeasure(bar,{first=false,previous=null,showBass=false,showMeter=false,showLabels=true}={}){
+export function prepareMeasure(bar,{first=false,previous=null,showBass=false,showMeter=false,showLabels=true,compact=false}={}){
  const right=makeVoice(bar.rh,bar,'treble'),left=showBass?makeVoice([bar.left],bar,'bass'):null;
  const changed=previous&&!sameKey(previous,bar);
  const staves=[new VF.Stave(0,0,300),...(left?[new VF.Stave(0,130,300)]:[])];
@@ -59,7 +59,13 @@ export function prepareMeasure(bar,{first=false,previous=null,showBass=false,sho
  const prefix=Math.max(...staves.map(s=>s.getNoteStartX()))+8;
  const labelWidth=showLabels?Math.max(scoreLabelWidth(bar.symbol,SCORE_LABEL_STYLE.symbolSize,600),scoreLabelWidth(bar.name,SCORE_LABEL_STYLE.nameSize))+48:0;
  const musicWidth=Math.max(minNotes+24,bar.rh.length>1?bar.rh.length*26:52,labelWidth);
- return {bar,right,left,voices,staves,formatter,prefix,minimum:prefix+musicWidth+14,first,changed};
+ // On portrait phones the labels can use the space ABOVE the clef/signature.
+ // Reserve their own width, rather than adding it after the entire staff prefix.
+ // Never reduce VexFlow's minimum glyph/accidental spacing to fit a row.
+ const compactLabel=showLabels?Math.max(scoreLabelWidth(bar.symbol,SCORE_LABEL_STYLE.symbolSize,600),scoreLabelWidth(bar.name,SCORE_LABEL_STYLE.nameSize))+20:0;
+ const compactMusic=prefix+Math.max(minNotes+20,bar.rh.length>1?bar.rh.length*24:42)+12;
+ const minimum=compact?Math.max(compactMusic,compactLabel):prefix+musicWidth+14;
+ return {bar,right,left,voices,staves,formatter,prefix,minimum,first,changed,compact};
 }
 /** Every measure is visible. Reflow breaks systems at bar lines, never pages chords. */
 export function planEngraving(score,width,options={}){
@@ -70,9 +76,9 @@ export function planEngraving(score,width,options={}){
  const rows=[];let row={measures:[],used:0};
  for(let i=0;i<score.bars.length;i++){
   const bar=score.bars[i],previous=score.bars[i-1]||null;
-  const make=first=>prepareMeasure(bar,{first,previous,showBass,showMeter:meter&&i===0,showLabels:options.showLabels!==false});
+  const make=first=>prepareMeasure(bar,{first,previous,showBass,showMeter:meter&&i===0,showLabels:options.showLabels!==false,compact:options.compact===true});
   let m=make(row.measures.length===0);
-  if(row.measures.length&&row.used+m.minimum>width-32){rows.push(row);row={measures:[],used:0};m=make(true);}
+  if(row.measures.length&&(row.used+m.minimum>width-32 || row.measures.length>=(options.barsPerSystem||Infinity))){rows.push(row);row={measures:[],used:0};m=make(true);}
   row.measures.push(m);row.used+=m.minimum;
  }
  if(row.measures.length)rows.push(row);

@@ -1,7 +1,7 @@
 import { keyLabel } from './key-labels.js';
 /** VexFlow + Bravura. One complete SVG per exercise; score data remains the audio source. */
 import { VF } from './vexflow.js';
-import { planEngraving, SCORE_LABEL_STYLE } from './engraving.js';
+import { planEngraving, SCORE_LABEL_STYLE, scoreLabelWidth } from './engraving.js';
 import { noteName } from './music.js';
 const NS='http://www.w3.org/2000/svg',INK='#332f28',STAFF_INK='#8c857a';
 function node(tag,attrs={},value){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(value!==undefined)n.textContent=value;return n;}
@@ -24,7 +24,18 @@ let records=new WeakMap();const roots=new Set(),pending=new Set();let observer,f
 function paint(container,score,forcedWidth,options={}){
  const actual=container.clientWidth||800,scale=options.scale??.75;
  if(!Number.isFinite(scale)||scale<=0)throw new Error('Неверный масштаб нот');
- const plan=planEngraving(score,(forcedWidth||actual)/scale,options);
+ const portrait=!forcedWidth&&options.showLabels!==false&&typeof matchMedia==='function'&&matchMedia('(max-width: 600px) and (orientation: portrait)').matches;
+ const layoutOptions=portrait?{...options,compact:true,barsPerSystem:4}:options;
+ let layoutWidth=(forcedWidth||actual)/scale;
+ if(portrait&&score.bars.every(b=>b.rh.length===1)){
+  // Four block-chord measures form a complete phrase on phones. Use tighter
+  // spacing first; allow only a modest scale change for dense key signatures.
+  // Wide arpeggios keep natural line breaks rather than microscopic noteheads.
+  const phrase=planEngraving(score,10000,layoutOptions);
+  const needed=Math.max(...phrase.rows.map(row=>row.used+32));
+  layoutWidth=Math.max(layoutWidth,Math.min(needed,actual/.62));
+ }
+ const plan=planEngraving(score,layoutWidth,layoutOptions);
  const active=container.querySelector('.playing')?.dataset.scoreBar;
  // Atomic detached construction: a failed render never wipes the previous score.
  const mount=document.createElement('div');
@@ -34,7 +45,7 @@ function paint(container,score,forcedWidth,options={}){
  svg.setAttribute('class','score-document');svg.setAttribute('role','img');
  svg.setAttribute('data-renderer','vexflow-bravura');svg.setAttribute('data-note-scale',scale);
  svg.setAttribute('data-rh-voicings',score.rightHandVoicings===true);svg.setAttribute('data-key-label',keyLabel(score.tonic,score.mode));
- svg.setAttribute('data-layout-width',plan.width);svg.setAttribute('data-bass-visible',plan.showBass);
+ svg.setAttribute('data-portrait-layout',portrait);svg.setAttribute('data-layout-width',plan.width);svg.setAttribute('data-bass-visible',plan.showBass);
  svg.setAttribute('aria-label',score.bars.map(b=>`${b.symbol}: ${b.tones.map(noteName).join(', ')}${plan.showBass?'; бас '+noteName(b.bass):''}`).join('. '));
  svg.prepend(node('title',{},score.bars.map(b=>b.name||b.symbol).join(' — ')));
  let cursor=8;
@@ -70,8 +81,9 @@ function paint(container,score,forcedWidth,options={}){
    }
    if(options.showLabels!==false){
     const x=start+right.notes[0].getTickContext().getX();
-    label(measure,x,SCORE_LABEL_STYLE.symbolY,bar.symbol,SCORE_LABEL_STYLE.symbolSize,{'font-weight':'600',class:'score-degree'});
-    if(bar.name)label(measure,x,SCORE_LABEL_STYLE.nameY,bar.name,SCORE_LABEL_STYLE.nameSize,{fill:'#736c63',class:'score-caption score-chord'});
+    const labelX=(text,size,weight=400)=>m.compact?Math.max(m.x+8,Math.min(x,m.x+m.width-10-scoreLabelWidth(text,size,weight))):x;
+    label(measure,labelX(bar.symbol,SCORE_LABEL_STYLE.symbolSize,600),SCORE_LABEL_STYLE.symbolY,bar.symbol,SCORE_LABEL_STYLE.symbolSize,{'font-weight':'600',class:'score-degree'});
+    if(bar.name)label(measure,labelX(bar.name,SCORE_LABEL_STYLE.nameSize),SCORE_LABEL_STYLE.nameY,bar.name,SCORE_LABEL_STYLE.nameSize,{fill:'#736c63',class:'score-caption score-chord'});
     if(m.changed)label(measure,m.x+5,10,keyLabel(bar.tonic,bar.mode),10,{'font-family':'Arial, sans-serif',fill:'#736c63',class:'score-caption score-key-caption'});
    }
    ctx.closeGroup();

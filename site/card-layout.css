@@ -1,0 +1,60 @@
+/* The score stays on white paper; controls and discussion share a quiet footer. */
+:root { --card-footer: #f8f6f2; }
+#content .exercise { position: relative; }
+#content .exercise-heading { padding: 20px 62px 8px 20px; }
+#content .exercise-title { font: 500 21px/1.35 var(--serif); margin-bottom: 8px; }
+#content .exercise-index { line-height: 28px; }
+#content .exercise-content { padding: 0; }
+#content .score-area { padding: 0 18px; }
+#content .card-footer { background: var(--card-footer); }
+#content .exercise-footer { padding: 8px 18px 14px; }
+#content .exercise-footer > .exercise-actions { margin: 0; gap: 4px; }
+#content .exercise-footer .exercise-notes { margin-top: 4px; }
+#content .exercise-footer .bass-caption { margin: 6px 0; }
+#content .favorite-control {
+  position: absolute; top: 12px; right: 12px; display: grid; place-items: center;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none;
+  font-size: 24px; font-weight: 400; line-height: 1; font-family: inherit; color: var(--caption); border-radius: 6px;
+}
+#content .favorite-control[aria-pressed="true"] { color: var(--accent); }
+#content .favorite-control:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+@media (hover: hover) {
+  #content .favorite-control:hover { background: #85533109; color: var(--accent); }
+}
+/* Reference cards use the same score/control split without changing their contents. */
+#content .mode-card, #content .guide-card { overflow: hidden; }
+#content .mode-footer { margin: 10px -18px -18px; padding: 8px 18px 14px; }
+#content .guide-footer { margin: 10px -20px -20px; padding: 8px 20px 16px; }
+#content .mode-footer > .mode-actions { margin: 0; gap: 4px; }
+#content .mode-footer .mode-details { border: 0; margin-top: 4px; padding-top: 0; }
+#content .guide-footer .guide-actions { margin: 0 0 10px; }
+/* Text-only navigation. Touch targets and the mobile drawer are preserved. */
+#sidebar .primary-nav button { font-size: 15px; line-height: 1.4; gap: 8px; padding: 12px 10px; }
+#sidebar .primary-nav b { font-size: 11px; }
+#sidebar .sidebar-label { font-size: 11px; letter-spacing: 1px; }
+#sidebar .chapter-label { font-size: 12px; line-height: 1.55; letter-spacing: .6px; }
+#sidebar .lesson-link { font-size: 14px; line-height: 1.5; }
+#sidebar .lesson-link .num { font-size: 12px; min-width: 20px; }
+#sidebar .sidebar-bottom #signout {
+  margin: 0; width: 100%; min-height: 44px; text-align: left;
+  padding: 8px 10px; border: 0; background: transparent; box-shadow: none;
+  font-size: 15px; color: var(--muted);
+}
+#sidebar .sidebar-bottom #signout:hover { color: var(--accent); }
+@media (max-width: 600px) {
+  #content .exercise-heading { padding: 16px 54px 6px 12px; gap: 8px; }
+  #content .exercise-title { font-size: 19px; }
+  #content .exercise-index { line-height: 26px; }
+  #content .favorite-control { top: 7px; right: 5px; }
+  #content .score-area { padding: 0 10px; }
+  #content .exercise-footer { padding: 8px 10px 10px; }
+  #content .mode-footer { margin: 10px -13px -13px; padding: 8px 13px 12px; }
+  #content .guide-footer { margin: 10px -16px -16px; padding: 8px 16px 14px; }
+}
+@media print {
+  #content .card-footer { background: white; }
+  #content .exercise-footer, #content .favorite-control { display: none !important; }
+  #content .score-area { padding: 0; }
+  #content .exercise-heading { padding: 8px 0; }
+}
