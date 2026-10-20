@@ -63,7 +63,7 @@ export function prepareMeasure(bar,{first=false,previous=null,showBass=false,sho
  // Reserve their own width, rather than adding it after the entire staff prefix.
  // Never reduce VexFlow's minimum glyph/accidental spacing to fit a row.
  const compactLabel=showLabels?Math.max(scoreLabelWidth(bar.symbol,SCORE_LABEL_STYLE.symbolSize,600),scoreLabelWidth(bar.name,SCORE_LABEL_STYLE.nameSize))+20:0;
- const compactMusic=prefix+Math.max(minNotes+20,bar.rh.length>1?bar.rh.length*24:42)+12;
+ const compactMusic=prefix+Math.max(minNotes+18,bar.rh.length>1?bar.rh.length*24:42)+10;
  const minimum=compact?Math.max(compactMusic,compactLabel):prefix+musicWidth+14;
  return {bar,right,left,voices,staves,formatter,prefix,minimum,first,changed,compact};
 }

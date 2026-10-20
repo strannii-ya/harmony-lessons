@@ -23,23 +23,29 @@ jobs:
           npm run prepare:engraving
           npm test
           npm run build
-      - name: Public source workbench
-        run: |
-          git archive HEAD > /tmp/source.tar
-          tar -rf /tmp/source.tar site/vendor
-          mkdir -p workbench
-          mv /tmp/source.tar workbench/source.tar
-      - name: Browser checks
-        if: hashFiles('tests/inline_smoke.py') != ''
+      - name: Install pinned browsers
         run: |
           python -m pip install --quiet playwright==1.56.0
           python -m playwright install --with-deps chromium webkit > /tmp/inline-browsers.log 2>&1 || { tail -60 /tmp/inline-browsers.log; exit 1; }
-          python tests/inline_smoke.py
+      - name: Verify playback, notation and all reference screens
+        run: |
+          failed=0
+          for test in inline controls card_layout voicings bass modes library paper mobile engraving; do
+            python tests/${test}_smoke.py > /tmp/${test}.log 2>&1 || failed=1
+            tail -55 /tmp/${test}.log
+          done
+          exit "$failed"
+      - name: Save reviewed source workbench
+        if: always()
+        run: |
+          mkdir -p workbench
+          git archive HEAD > workbench/source.tar
+          test ! -d site/vendor || tar -rf workbench/source.tar site/vendor
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: inline-workbench
           path: |
             workbench/source.tar
-            ui-results/inline-*
+            ui-results
           retention-days: 3
