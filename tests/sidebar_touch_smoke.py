@@ -87,15 +87,16 @@ async def scenario(engine, width, height, touch, base):
         selected = page.locator('.primary-nav [data-view=modes]')
         await expect(selected).to_have_class(re.compile(r'active'))
         assert await page.locator('.lesson-link.active').count() == 0
-        before = await selected.evaluate('n=>getComputedStyle(n).backgroundColor')
+        # Wait for the existing button transition, not an intermediate animation frame.
+        await expect(selected).to_have_css('background-color', 'rgb(255, 253, 248)')
         await selected.hover()
-        assert before == await selected.evaluate('n=>getComputedStyle(n).backgroundColor')
+        await expect(selected).to_have_css('background-color', 'rgb(255, 253, 248)')
         # A touch browser must not apply desktop hover styling to unselected buttons either.
         if touch:
             other = page.locator('.primary-nav [data-view=library]')
-            original = await other.evaluate('n=>getComputedStyle(n).backgroundColor')
+            await expect(other).to_have_css('background-color', 'rgb(250, 247, 241)')
             await other.hover()
-            assert original == await other.evaluate('n=>getComputedStyle(n).backgroundColor')
+            await expect(other).to_have_css('background-color', 'rgb(250, 247, 241)')
         await page.keyboard.press('Tab')
         await selected.focus()
         assert await selected.evaluate('n=>getComputedStyle(n).outlineStyle') == 'solid'
