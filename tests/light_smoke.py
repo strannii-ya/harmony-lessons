@@ -57,7 +57,7 @@ async def scenario(engine,width,height,base,mode):
    assert await card.locator('[data-play]').get_attribute('aria-label')
    sc=await card.locator('[data-score]').bounding_box();ac=await card.locator('.exercise-actions').bounding_box()
    assert ac['y']>=sc['y']+sc['height']-1
-   assert await card.locator('.progression-frame').evaluate('n=>getComputedStyle(n).borderTopWidth')=='1px'
+   assert await card.locator('.progression-frame').evaluate('n=>getComputedStyle(n).borderTopWidth')=='0px'
    assert await card.locator('.score-document').get_attribute('data-note-scale')=='0.75'
   landscape=width>height and height<=520 and width<=1024
   if landscape:
