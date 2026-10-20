@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Only synthetic scores and identities: no live login, course reads or email delivery."""
 import asyncio, functools, threading, os, json
 from pathlib import Path
@@ -66,10 +67,10 @@ async def scenario(engine,w,h,base):
   await page.locator('[data-voicing]').click();await fits()
   await page.locator('.exercise').screenshot(path=str(OUT/f'library-waltz-{engine.name}-{w}x{h}.png'))
   await page.select_option('#pattern','arpeggio');await expect(page.locator('[data-hand=right] [data-note]')).to_have_count(24)
-  await page.locator('[data-play]').click();await expect(page.locator('#player')).to_be_visible();await page.locator('#close-player').click();await fits()
+  await page.locator('[data-play]').click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1);await stop_card(page);await fits()
   await page.select_option('#pattern','chords');await page.select_option('#genre-filter','jazz')
   await expect(page.locator('[data-hand=right] [data-note]')).to_have_count(20)
-  await page.locator('[data-voicing]').click();await page.locator('[data-key]').select_option('F#');await fits()
+  await page.locator('[data-voicing]').click();await choose_key(page.locator('[data-key]'),'F#');await fits()
   await page.locator('[data-star]').click();await nav('favorites');await expect(page.locator('.exercise')).to_have_count(1)
   await expect(page.locator('.exercise')).to_have_attribute('data-eid','catalog-jazz')
   await nav('library');await page.locator('[data-collection=course]').click();await expect(page.locator('.exercise')).to_have_count(1)

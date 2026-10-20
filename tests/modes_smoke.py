@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic identities only. Verify actual notation, sound, filters and cleanup."""
 import asyncio,functools,threading,os,json
 from pathlib import Path
@@ -80,8 +81,8 @@ async def scenario(engine,w,h,base):
   await page.locator('[data-scale-play]').first.click();await nav('reference');assert not await page.evaluate('modePlayer.running')
   await expect(page.locator('.guide-card')).to_have_count(44)
   await nav('course');await page.locator('.course-card').first.click();await expect(page.locator('.exercise')).to_have_count(1)
-  await page.locator('[data-voicing]').click();await page.locator('[data-bass]').click();await page.locator('[data-play]').click();await expect(page.locator('#player')).to_be_visible()
-  await nav('modes');await expect(page.locator('#player')).to_be_hidden();await page.locator('[data-scale-play]').first.click()
+  await page.locator('[data-voicing]').click();await page.locator('[data-bass]').click();await page.locator('[data-play]').click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1)
+  await nav('modes');await expect(page.locator('#player')).to_have_count(0);await page.locator('[data-scale-play]').first.click()
   await page.keyboard.press('Escape');assert not await page.evaluate('modePlayer.running')
   await page.reload(wait_until='networkidle');await expect(page.locator('.mode-card')).to_have_count(44);await fits()
   assert not writes,writes

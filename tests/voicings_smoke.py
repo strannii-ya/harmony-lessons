@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic course and real engraving/audio path. Never sends live Auth requests."""
 import asyncio, functools, os, threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -51,8 +52,8 @@ async def scenario(engine,w,h,base):
   await page.goto(base,wait_until='networkidle');await page.locator('.course-card').first.click()
   cards=page.locator('.exercise');await expect(cards).to_have_count(5)
   await expect(page.locator('[data-bass] + [data-voicing]')).to_have_count(5)
-  assert await page.locator('[data-key]').first.locator('option:checked').inner_text()=='C-dur'
-  assert await page.locator('[data-key]').nth(2).locator('option:checked').inner_text()=='a-moll'
+  assert await page.locator('[data-key]').first.inner_text()=='C-dur'
+  assert await page.locator('[data-key]').nth(2).inner_text()=='a-moll'
   await expect(page.locator('#notes')).to_have_value('Личная заметка: до мажор.')
   await page.locator('.lesson-theory>summary').click()
   await expect(page.locator('.lesson-theory .theory-body')).to_contain_text('C-dur и a-moll')
@@ -63,6 +64,8 @@ async def scenario(engine,w,h,base):
    window.plays=[];Player.prototype.play=function(score,options){window.plays.push(JSON.parse(JSON.stringify(score)));return original.call(this,score,options)};}''')
   originals=[]
   for card in await cards.all():
+   await expect(card.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
+   await card.locator('[data-voicing]').click()
    originals.append(await note_values(card));bass=await note_values(card,'left');symbol=await card.locator('.roman').inner_text()
    await card.locator('[data-voicing]').click();await expect(card.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
    assert await note_values(card,'left')==bass
@@ -76,14 +79,14 @@ async def scenario(engine,w,h,base):
   await first.screenshot(path=str(OUT/f'voicings-{engine.name}-{w}x{h}.png'))
   await first.locator('[data-voicing]').click();assert await note_values(first)==originals[0]
   await first.locator('[data-voicing]').click();assert await note_values(first)==connected
-  await first.locator('[data-key]').select_option('B')
-  await expect(first.locator('[data-key] option:checked')).to_have_text('H-dur')
+  await choose_key(first.locator('[data-key]'),'B')
+  await expect(first.locator('[data-key]')).to_have_text('H-dur')
   await expect(first.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
-  await first.locator('[data-key]').select_option('Bb')
-  await expect(first.locator('[data-key] option:checked')).to_have_text('B-dur')
+  await choose_key(first.locator('[data-key]'),'Bb')
+  await expect(first.locator('[data-key]')).to_have_text('B-dur')
   await page.select_option('#pattern','arpeggio');await fits()
   await expect(first.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
-  await first.locator('[data-play]').click();await expect(page.locator('#player')).to_be_visible()
+  await first.locator('[data-play]').click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1)
   played=await page.evaluate('plays.at(-1)')
   expected=[{'midi':n['midi'],'note':'','beat':event['beat'],'duration':event['duration']} for b in played['bars'] for event in b['rh'] for n in event['notes']]
   actual=await note_values(first)
@@ -95,7 +98,7 @@ async def scenario(engine,w,h,base):
   assert not (await page.evaluate('plays.at(-1)')).get('rightHandVoicings',False)
   await first.locator('[data-voicing]').click()
   assert (await page.evaluate('plays.at(-1)'))['rightHandVoicings']
-  await page.locator('#close-player').click();assert changes['writes']==0
+  await stop_card(page);assert changes['writes']==0
   await page.select_option('#pattern','chords')
   await first.locator('[data-star]').click();await nav('favorites')
   await expect(page.locator('.exercise')).to_have_count(1)

@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic fixtures: light UI, continuous VexFlow scores, reference, and private theory rendering."""
 import asyncio,functools,threading
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
@@ -78,19 +79,19 @@ async def scenario(engine,width,height,base,mode):
   sheet=page.locator('[data-score]').first
   initial=await sheet.locator('[data-midi]').evaluate_all('ns=>ns.map(n=>+n.dataset.midi)')
   await page.locator('[data-shift="1"]').first.click()
-  await expect(page.locator('[data-key]').first).to_have_value('Db')
+  await expect(page.locator('[data-key]').first).to_have_attribute('data-tonic','Db')
   shifted=await sheet.locator('[data-midi]').evaluate_all('ns=>ns.map(n=>+n.dataset.midi)')
   assert [(b-a)%12 for a,b in zip(initial,shifted)]==[1]*len(initial)
   await page.select_option('#pattern','arpeggio');await fits('arpeggio')
   await page.locator('[data-play]').first.click()
-  await expect(page.locator('#player')).to_be_visible();await expect(sheet.locator('.playing')).to_have_count(1)
+  await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1);await expect(sheet.locator('.playing')).to_have_count(1)
   await sheet.locator('svg').evaluate('n=>n.dataset.sentinel="same"')
   if mode=='score':await page.wait_for_timeout(3700)
   assert await sheet.locator('svg').get_attribute('data-sentinel')=='same'
   await expect(sheet.locator('[data-score-bar]')).to_have_count(8)
-  await page.locator('#hand').select_option('left');await fits('player')
-  await page.locator('#close-player').click();await page.select_option('#pattern','chords')
-  await page.locator('[data-key]').first.select_option('C')
+  await expect(page.locator('#hand,#tempo,#player')).to_have_count(0);await fits('inline player')
+  await stop_card(page);await page.select_option('#pattern','chords')
+  await choose_key(page.locator('[data-key]').first,'C')
   await page.screenshot(path=str(OUT/f'light-lesson-{engine.name}-{width}x{height}.png'),full_page=True)
   if mode=='engraving':
    await nav('reference');await expect(page.locator('.guide-card')).to_have_count(44)

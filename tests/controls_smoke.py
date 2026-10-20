@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic accounts only. Verify minimal controls and readable, non-overlapping score labels."""
 import asyncio,functools,threading,json,os
 from pathlib import Path
@@ -72,6 +73,8 @@ async def scenario(engine,w,h,base):
   await page.goto(base+'#lesson-1',wait_until='networkidle')
   await expect(page.locator('.exercise')).to_have_count(4)
   first=page.locator('.exercise').first
+  await expect(first.locator('[data-voicing]')).to_have_attribute('aria-pressed','true')
+  await first.locator('[data-voicing]').click()
   await expect(first.locator('[data-voicing]')).to_have_text('')
   await expect(first.locator('[data-voicing] .voice-head')).to_have_count(6)
   await expect(first.locator('[data-voicing]')).to_have_attribute('aria-label','С обращениями правой руки')
@@ -100,18 +103,18 @@ async def scenario(engine,w,h,base):
    await expect(page.locator('#toast')).to_contain_text('Бас не меняется')
    assert await page.evaluate("localStorage.getItem('harmony.voicing-icon-help.v1')")=='1'
   await first.screenshot(path=str(OUT/f'controls-active-{engine.name}-{w}x{h}.png'))
-  await first.locator('[data-shift="1"] svg').click();await expect(first.locator('[data-key]')).to_have_value('Db')
-  await first.locator('[data-shift="-1"] svg').click();await expect(first.locator('[data-key]')).to_have_value('C')
+  await first.locator('[data-shift="1"] svg').click();await expect(first.locator('[data-key]')).to_have_attribute('data-tonic','Db')
+  await first.locator('[data-shift="-1"] svg').click();await expect(first.locator('[data-key]')).to_have_attribute('data-tonic','C')
   await first.locator('[data-bass]').focus();await page.keyboard.press('Enter')
   await expect(first.locator('[data-bass]')).to_have_attribute('aria-pressed','false')
   await page.keyboard.press('Tab')
   assert await page.evaluate('getComputedStyle(document.activeElement).outlineStyle')=='solid'
   assert float(await page.evaluate('parseFloat(getComputedStyle(document.activeElement).outlineWidth)'))>=2
-  await first.locator('[data-play]').click();await expect(page.locator('#player')).to_be_visible()
-  await page.locator('#close-player').click()
+  await first.locator('[data-play]').click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1)
+  await stop_card(page)
   await nav('library');await expect(page.locator('.exercise')).to_have_count(5)
   for tonic in ['C','Db','F#','B','Bb']:
-   for select in await page.locator('[data-key]').all():await select.select_option(tonic)
+   for select in await page.locator('[data-key]').all():await choose_key(select,tonic)
    await fits()
   await page.select_option('#pattern','arpeggio');await fits()
   await page.select_option('#pattern','chords')

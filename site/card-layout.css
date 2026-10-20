@@ -58,3 +58,42 @@
   #content .score-area { padding: 0; }
   #content .exercise-heading { padding: 8px 0; }
 }
+
+/* Matching formulas, quiet favorites, and a compact text-only sidebar. */
+#content .roman.progression-frame {
+  display: block; border: 0; box-shadow: none; background: #f8f3e9;
+  color: #694d2e; border-radius: 7px; padding: 7px 10px;
+  font: 16px/1.6 var(--serif); letter-spacing: normal;
+}
+#content .favorite-control { color: #aaa397; }
+#content .favorite-control[aria-pressed="true"] { color: #92744f; }
+#content .exercise-actions .key-name {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 88px; min-width: 88px; height: 44px; padding: 0 3px;
+  font-family: inherit; font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--text); white-space: nowrap;
+}
+#content .guide-actions { display: flex; align-items: center; gap: 8px; }
+#content .guide-actions > label { min-width: 0; flex: 1; }
+#content .guide-actions .icon-play {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 44px; width: 44px; height: 44px; padding: 0;
+  color: var(--accent); border: 0; box-shadow: none; background: transparent;
+}
+#content .guide-actions .icon-play svg { width: 26px; height: 26px; }
+#sidebar .primary-nav { display: grid; gap: 6px; }
+#sidebar .primary-nav button {
+  background: #ede7dd; border: 0; color: #514b42; box-shadow: none;
+}
+#sidebar .primary-nav button.active { background: #ddceb7; color: #593b20; }
+#sidebar .primary-nav button:hover { background: #e5daca; color: #593b20; }
+aside#sidebar { padding-bottom: max(56px, env(safe-area-inset-bottom)); }
+aside#sidebar .sidebar-bottom {
+  padding: 2px 0; margin-top: 8px; min-height: 0;
+  bottom: max(4px, env(safe-area-inset-bottom));
+}
+#sidebar .sidebar-bottom #signout { min-height: 44px; height: 44px; padding: 4px 10px; font-size: 14px; }
+@media (max-width: 900px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  aside#sidebar { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  aside#sidebar .sidebar-bottom { position: static; width: 100%; margin-top: 8px; padding: 2px 0; }
+}
+@media (max-width: 600px) { #content .roman.progression-frame { font-size: 15px; } }

@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic fixture only: white borderless surfaces, whole-note scales, and responsive engraving."""
 import asyncio,functools,threading,os
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
@@ -71,8 +72,8 @@ async def scenario(engine,w,h,base):
   await page.locator('.course-card').first.click();await expect(page.locator('.exercise')).to_have_count(2)
   await surfaces('.exercise,.prep,.lesson-theory,.notes-editor');await surfaces('.exercise .score',False);await staff_ink();await fits()
   await page.screenshot(path=str(OUT/f'paper-lesson-{engine.name}-{w}x{h}.png'))
-  await page.locator('[data-bass]').first.click();await page.locator('[data-voicing]').first.click();await page.locator('[data-key]').first.select_option('Db')
-  await page.select_option('#pattern','arpeggio');await fits();await page.locator('[data-play]').first.click();await expect(page.locator('#player')).to_be_visible();await page.locator('#close-player').click()
+  await page.locator('[data-bass]').first.click();await page.locator('[data-voicing]').first.click();await choose_key(page.locator('[data-key]').first,'Db')
+  await page.select_option('#pattern','arpeggio');await fits();await page.locator('[data-play]').first.click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1);await stop_card(page)
   await nav('favorites');await expect(page.locator('.exercise')).to_have_count(1);await surfaces('.exercise');await fits()
   await nav('access');await expect(page.locator('.access-panel')).to_have_count(3);await surfaces('.access-panel');await fits()
   if w>h and w<1025:await expect(page.locator('.topbar')).to_be_hidden()

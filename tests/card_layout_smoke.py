@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic course only. Card anatomy, four-bar phone phrases, sidebar and preserved controls."""
 import asyncio,functools,threading,json
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
@@ -72,13 +73,13 @@ async def scenario(engine,w,h,base):
   await page.screenshot(path=str(OUT/f'cards-page-{engine.name}-{w}x{h}.png'))
   portrait=w<=600 and h>w
   for tonic in ['C','Db','F#','Bb','B']:
-   await first.locator('[data-key]').select_option(tonic);await fits()
+   await choose_key(first.locator('[data-key]'),tonic);await fits()
    if portrait:assert await first.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[4,4]
-  await first.locator('[data-key]').select_option('C')
+  await choose_key(first.locator('[data-key]'),'C')
   await first.locator('[data-bass]').click();await first.locator('[data-voicing]').click();await fits()
   if portrait:assert await first.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[4,4]
   await first.screenshot(path=str(OUT/f'cards-bass-{engine.name}-{w}x{h}.png'))
-  await first.locator('[data-play]').click();await expect(page.locator('#player')).to_be_visible();await page.locator('#close-player').click()
+  await first.locator('[data-play]').click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1);await stop_card(page)
   await page.select_option('#pattern','arpeggio');await fits();assert await first.locator('.score-measure').count()==8
   await page.select_option('#pattern','chords')
   await first.locator('[data-star]').click();await expect(first.locator('[data-star]')).to_have_attribute('aria-pressed','true')

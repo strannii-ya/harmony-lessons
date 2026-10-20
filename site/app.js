@@ -7,16 +7,16 @@ import { voicingButtonLabel } from './voicings.js';
 import { defaultBass, bassReason, bassButtonLabel, compileExercise } from './bass.js';
 import { mountAccess } from './access.js';
 import { guideHTML, mountGuide } from './chord-guide.js';
-import { KEYS, transposeKey } from './music.js';
+import { transposeKey } from './music.js';
 import { renderScore, clearScores } from './notation.js';
-import { Player } from './audio.js';
+import { cardPlayback as player, playIcon } from './card-playback.js';
 import { getLibraryAPI } from './auth-client.js';
 import { isTransientAuthError } from './oauth-session.js';
 import { loading,ready,login,loadingError } from './auth-screen.js';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const courseText=s=>esc(academicKeyNames(s));
-const state={data:null,user:null,view:'course',lesson:1,pattern:'chords',selected:null,settings:new Map(),loop:false,bpm:72,hand:'both',search:'',filter:'all',collection:'all',genre:'all'};
-const player=new Player(),explainVoicing=makeVoicingHint();let api,toastTimer;
+const state={data:null,user:null,view:'course',lesson:1,pattern:'chords',selected:null,settings:new Map(),search:'',filter:'all',collection:'all',genre:'all'};
+const explainVoicing=makeVoicingHint();let api,toastTimer;
 const notify=s=>{clearTimeout(toastTimer);$('#toast').textContent=s;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,5000);};
 const protect=fn=>async(...args)=>{try{await fn(...args);}catch(e){if(e.authExpired)exitToLogin('Сессия завершена. Войди снова.');else notify(e.message||'Не удалось выполнить действие');}};
 const lessonBy=id=>state.data.lessons.find(l=>String(l.id)===String(id));
@@ -24,13 +24,12 @@ const exerciseBy=id=>state.data.exercises.find(e=>e.id===id);
 const exercisesFor=id=>state.data.exercises.filter(e=>String(e.lesson_id)===String(id));
 const progressFor=id=>state.data.progress.find(p=>String(p.lesson_id)===String(id));
 const isFavorite=id=>state.data.favorites.some(f=>f.exercise_id===id);
-function settings(e){if(!state.settings.has(e.id))state.settings.set(e.id,{tonic:e.mode==='minor'?'A':'C',mode:e.mode||'major',showBass:defaultBass(e),inversions:false});return {...state.settings.get(e.id),pattern:state.pattern};}
+function settings(e){if(!state.settings.has(e.id))state.settings.set(e.id,{tonic:e.mode==='minor'?'A':'C',mode:e.mode||'major',showBass:defaultBass(e),inversions:true});return {...state.settings.get(e.id),pattern:state.pattern};}
 const roman=e=>e.progression.map(x=>typeof x==='string'?x:x.symbol).join(isGenre(e)?' | ':' – ');
 const chapterRoman=n=>['','I','II','III','IV','V','VI','VII'][n]||n;
-function navigate(view,lesson){player.stop();$('#player').hidden=true;state.selected=null;state.view=view;if(lesson)state.lesson=lesson;history.replaceState(null,'','#'+(view==='lesson'?'lesson-'+state.lesson:view));document.body.classList.remove('menu-open');render();window.scrollTo({top:0,behavior:'instant'});}
+function navigate(view,lesson){player.stop();state.selected=null;state.view=view;if(lesson)state.lesson=lesson;history.replaceState(null,'','#'+(view==='lesson'?'lesson-'+state.lesson:view));document.body.classList.remove('menu-open');render();window.scrollTo({top:0,behavior:'instant'});}
 function nav(){
  $('[data-view=access]').hidden=!api.isOwner;
- $('#lesson-count').textContent=state.data.lessons.length;
  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===state.view||(b.dataset.view==='course'&&state.view==='lesson')));
  let html='',chapter=null;for(const l of state.data.lessons){if(l.chapter!==chapter){chapter=l.chapter;html+=`<div class="chapter-label">${chapterRoman(chapter)} / ${courseText(l.chapter_title)}</div>`;}html+=`<button class="lesson-link ${state.view==='lesson'&&String(state.lesson)===String(l.id)?'active':''}" data-lesson="${esc(l.id)}"><span class="num">${String(l.position).padStart(2,'0')}</span><span>${courseText(l.title)}</span>${progressFor(l.id)?.completed?'<span class="done">✓</span>':''}</button>`;}
  $('#lesson-nav').innerHTML=html;
@@ -47,12 +46,12 @@ function modes(){
 function reference(){
  $('#breadcrumb').textContent='Аккорды и обращения';
  $('#content').innerHTML='<section class="page-heading"><h1>Аккорды и обращения</h1></section>'+guideHTML(true);
- mountGuide(document.querySelector('.chord-guide'));
+ mountGuide(document.querySelector('.chord-guide'),notify);
 }
 function course(){
  $('#breadcrumb').textContent='Мой курс';const complete=state.data.progress.filter(p=>p.completed).length,current=state.data.lessons.find(l=>!progressFor(l.id)?.completed)||state.data.lessons[0];
  let html=`<section class="page-heading"><h1>Курс гармонии</h1><p class="page-count">${complete} / ${state.data.lessons.length} пройдено · ${state.data.exercises.filter(e=>!isGenre(e)).length} упражнений</p></section><div class="resume-row"><span>Урок ${current.position}. ${courseText(current.title)}</span><button data-lesson="${esc(current.id)}">Продолжить →</button></div>`;
- const chapters=[...new Set(state.data.lessons.map(l=>l.chapter))];for(const c of chapters){const ls=state.data.lessons.filter(l=>l.chapter===c);html+=`<div class="section-heading"><h2>${chapterRoman(c)}. ${courseText(ls[0].chapter_title)}</h2><span>${ls.length}</span></div><div class="course-grid">${ls.map(l=>`<button class="course-card" data-lesson="${esc(l.id)}"><span class="card-num">${String(l.position).padStart(2,'0')}</span><h3>${courseText(l.title)}</h3><small>Упражнений: ${exercisesFor(l.id).length}</small>${progressFor(l.id)?.completed?'<span class="status-pill">Пройдено</span>':''}</button>`).join('')}</div>`;}
+ const chapters=[...new Set(state.data.lessons.map(l=>l.chapter))];for(const c of chapters){const ls=state.data.lessons.filter(l=>l.chapter===c);html+=`<div class="section-heading"><h2>${chapterRoman(c)}. ${courseText(ls[0].chapter_title)}</h2><span>${ls.length}</span></div><div class="course-grid">${ls.map(l=>`<button class="course-card" data-lesson="${esc(l.id)}"><span class="card-num">${String(l.position).padStart(2,'0')}</span><h3>${courseText(l.title)}</h3>${progressFor(l.id)?.completed?'<span class="status-pill">Пройдено</span>':''}</button>`).join('')}</div>`;}
  $('#content').innerHTML=html;
 }
 function figureHTML(figure){
@@ -68,7 +67,7 @@ function theoryHTML(theory) {
  });
  return `<div class="theory-body">${sections}${figureHTML(theory.figure)}${sources.length?`<div class="theory-sources"><span>Справочные материалы:</span> ${sources.join(' · ')}</div>`:''}</div>`;
 }
-function exerciseHTML(e,i){const s=settings(e);return `<article class="exercise" data-eid="${esc(e.id)}"><header class="exercise-heading"><span class="exercise-index">${String(i+1).padStart(2,'0')}</span><div>${isGenre(e)?`<p class="genre-badge">${esc(genreLabel(e))} · ${e.progression.length} тактов · ${e.theory?.meter||4}/4</p>`:''}<h3 class="exercise-title">${courseText(e.title)}</h3><div class="roman progression-frame">${esc(roman(e))}${e.loop?' ↻':''}</div></div><button type="button" data-star="${esc(e.id)}" class="favorite-control ${isFavorite(e.id)?'saved':''}" aria-label="Избранное" aria-pressed="${isFavorite(e.id)}">${isFavorite(e.id)?'★':'☆'}</button></header><div class="exercise-content"><div class="score-area"><div class="score" id="score-${esc(e.id)}" data-score="${esc(e.id)}"></div></div><div class="card-footer exercise-footer"><div class="exercise-actions" role="group" aria-label="Управление нотами: ${courseText(e.title)}"><button type="button" class="primary icon-play" data-play="${esc(e.id)}" title="Воспроизвести" aria-label="Воспроизвести: ${courseText(e.title)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><div class="key-control"><button type="button" data-shift="-1" data-id="${esc(e.id)}" aria-label="На полтона ниже" title="На полтона ниже">${LOWER_ICON}</button><select aria-label="Тональность упражнения" data-key="${esc(e.id)}">${KEYS[s.mode].map(k=>`<option value="${k}" ${s.tonic===k?'selected':''}>${keyLabel(k,s.mode)}</option>`).join('')}</select><button type="button" data-shift="1" data-id="${esc(e.id)}" aria-label="На полтона выше" title="На полтона выше">${HIGHER_ICON}</button></div><div class="voice-controls" role="group" aria-label="Расположение и показ голосов"><button type="button" data-bass="${esc(e.id)}" aria-controls="score-${esc(e.id)}" aria-pressed="${s.showBass}" aria-label="Басовая строка" title="${esc(bassButtonLabel(s.showBass)+(bassReason(e)?'. '+bassReason(e):''))}"><svg class="bass-control-icon" viewBox="0 0 800 1000" aria-hidden="true" focusable="false"><path d="${CLEF_PATHS.bass}" transform="translate(0 950) scale(1 -1)" fill="currentColor"/></svg></button><button type="button" data-voicing="${esc(e.id)}" aria-controls="score-${esc(e.id)}" aria-pressed="${s.inversions}" aria-label="С обращениями правой руки" title="${esc(VOICING_TITLE+'. '+voicingButtonLabel(s.inversions))}">${VOICING_ICON}</button></div></div>${e.progression.some(x=>typeof x==='object'&&x.bass)?'<div class="small-caption bass-caption">Бас: '+esc(e.progression.map(x=>typeof x==='object'&&x.bass?x.bass:'—').join(' → '))+'</div>':''}<details class="exercise-notes"><summary>Разбор</summary>${theoryHTML(e.theory)}<div class="task-row"><div><h4>Задача</h4><p>${courseText(e.goal)}</p></div><div><h4>Обсудить</h4><p>${courseText(e.discuss)}</p></div></div></details></div></div></article>`;}
+function exerciseHTML(e,i){const s=settings(e);return `<article class="exercise" data-eid="${esc(e.id)}"><header class="exercise-heading"><span class="exercise-index">${String(i+1).padStart(2,'0')}</span><div>${isGenre(e)?`<p class="genre-badge">${esc(genreLabel(e))} · ${e.progression.length} тактов · ${e.theory?.meter||4}/4</p>`:''}<h3 class="exercise-title">${courseText(e.title)}</h3><div class="roman progression-frame mode-formula">${esc(roman(e))}${e.loop?' ↻':''}</div></div><button type="button" data-star="${esc(e.id)}" class="favorite-control ${isFavorite(e.id)?'saved':''}" aria-label="Избранное" aria-pressed="${isFavorite(e.id)}">${isFavorite(e.id)?'★':'☆'}</button></header><div class="exercise-content"><div class="score-area"><div class="score" id="score-${esc(e.id)}" data-score="${esc(e.id)}"></div></div><div class="card-footer exercise-footer"><div class="exercise-actions" role="group" aria-label="Управление нотами: ${courseText(e.title)}"><button type="button" class="primary icon-play" data-play="${esc(e.id)}" aria-pressed="false" title="Воспроизвести" aria-label="Воспроизвести: ${courseText(e.title)}">${playIcon(false)}</button><div class="key-control"><button type="button" data-shift="-1" data-id="${esc(e.id)}" aria-label="На полтона ниже" title="На полтона ниже">${LOWER_ICON}</button><span class="key-name" data-key="${esc(e.id)}" data-tonic="${esc(s.tonic)}" aria-label="Тональность упражнения" aria-live="polite">${keyLabel(s.tonic,s.mode)}</span><button type="button" data-shift="1" data-id="${esc(e.id)}" aria-label="На полтона выше" title="На полтона выше">${HIGHER_ICON}</button></div><div class="voice-controls" role="group" aria-label="Расположение и показ голосов"><button type="button" data-bass="${esc(e.id)}" aria-controls="score-${esc(e.id)}" aria-pressed="${s.showBass}" aria-label="Басовая строка" title="${esc(bassButtonLabel(s.showBass)+(bassReason(e)?'. '+bassReason(e):''))}"><svg class="bass-control-icon" viewBox="0 0 800 1000" aria-hidden="true" focusable="false"><path d="${CLEF_PATHS.bass}" transform="translate(0 950) scale(1 -1)" fill="currentColor"/></svg></button><button type="button" data-voicing="${esc(e.id)}" aria-controls="score-${esc(e.id)}" aria-pressed="${s.inversions}" aria-label="С обращениями правой руки" title="${esc(VOICING_TITLE+'. '+voicingButtonLabel(s.inversions))}">${VOICING_ICON}</button></div></div>${e.progression.some(x=>typeof x==='object'&&x.bass)?'<div class="small-caption bass-caption">Бас: '+esc(e.progression.map(x=>typeof x==='object'&&x.bass?x.bass:'—').join(' → '))+'</div>':''}<details class="exercise-notes"><summary>Разбор</summary>${theoryHTML(e.theory)}<div class="task-row"><div><h4>Задача</h4><p>${courseText(e.goal)}</p></div><div><h4>Обсудить</h4><p>${courseText(e.discuss)}</p></div></div></details></div></div></article>`;}
 function mountScores(){document.querySelectorAll('.exercise').forEach(d=>{try{draw(d.dataset.eid);}catch(e){const root=d.querySelector('.score');root.textContent=e.message;root.classList.add('score-error');}});}
 function draw(id){const e=exerciseBy(id),s=compileExercise(e,settings(e));const root=document.querySelector(`[data-score="${CSS.escape(id)}"]`);if(root)renderScore(root,s,{showBass:settings(e).showBass});return s;}
 function patternControl(){return `<div class="toolbar-controls"><select id="pattern" aria-label="Фактура нот и звука"><option value="chords" ${state.pattern==='chords'?'selected':''}>Аккорды целиком</option><option value="arpeggio" ${state.pattern==='arpeggio'?'selected':''}>Широкое арпеджио</option></select><button id="print">Печать нот</button></div>`;}
@@ -84,7 +83,7 @@ function library(){
  renderResults();
 }
 function renderResults(){
- clearScores();
+ player.stop();clearScores();
  const list=selectExercises(state.data.exercises,{collection:state.collection,genre:state.genre,lesson:state.filter,query:state.search,favorites:state.view==='favorites'?new Set(state.data.favorites.map(f=>f.exercise_id)):null});
  $('#results-count').textContent=`Найдено: ${list.length}`;
  $('#results').innerHTML=list.length?(state.collection==='genres'?GENRES.map(g=>{
@@ -92,8 +91,21 @@ function renderResults(){
  }).join(''):list.map(exerciseHTML).join('')):'<div class="empty">Нет последовательностей.</div>';
  mountScores();
 }
-async function startPlayback(id){player.stop();state.selected=id;const e=exerciseBy(id),s=draw(id);$('#player').hidden=false;$('#playing-title').textContent=academicKeyNames(e.title);$('#play-toggle').textContent='■';$('#play-toggle').setAttribute('aria-label','Остановить');await player.play(s,{bpm:state.bpm,hand:state.hand,loop:state.loop,onChord:i=>document.querySelectorAll('.score-measure').forEach(n=>n.classList.toggle('playing',n.closest('[data-eid]')?.dataset.eid===id&&Number(n.dataset.scoreBar)===i)),onStop:()=>{$('#play-toggle').textContent='▶';$('#play-toggle').setAttribute('aria-label','Играть');document.querySelectorAll('.playing').forEach(n=>n.classList.remove('playing'));}});}
-async function refreshExercise(id){player.stop();draw(id);const e=exerciseBy(id),sel=document.querySelector(`[data-key="${CSS.escape(id)}"]`);if(sel)sel.value=settings(e).tonic;}
+async function startPlayback(id,{restart=false}={}){
+ const key='exercise:'+id;
+ if(!restart&&player.isPlaying(key)){player.stop();return;}
+ state.selected=id;
+ const e=exerciseBy(id),score=draw(id),card=document.querySelector(`[data-eid="${CSS.escape(id)}"]`);
+ if(!card)return;
+ await player.start({key,score,button:card.querySelector('[data-play]'),label:academicKeyNames(e.title),
+  onChord:i=>card.querySelectorAll('.score-measure').forEach(n=>n.classList.toggle('playing',Number(n.dataset.scoreBar)===i)),
+  clear:()=>card.querySelectorAll('.playing').forEach(n=>n.classList.remove('playing'))});
+}
+async function refreshExercise(id){
+ player.stop();draw(id);
+ const e=exerciseBy(id),s=settings(e),label=document.querySelector(`[data-key="${CSS.escape(id)}"]`);
+ if(label){label.textContent=keyLabel(s.tonic,s.mode);label.dataset.tonic=s.tonic;}
+}
 async function persistProgress(patch){const rows=await api.saveProgress(state.user.id,state.lesson,patch);const entry=rows?.[0];if(entry){const i=state.data.progress.findIndex(x=>String(x.lesson_id)===String(state.lesson));if(i>=0)state.data.progress[i]=entry;else state.data.progress.push(entry);}nav();}
 document.addEventListener('click',protect(async ev=>{
  const b=ev.target.closest('button');if(!b)return;
@@ -101,22 +113,18 @@ document.addEventListener('click',protect(async ev=>{
  if(b.dataset.view){navigate(b.dataset.view);return;}if(b.dataset.lesson){navigate('lesson',b.dataset.lesson);return;}
  if(b.dataset.play){await startPlayback(b.dataset.play);return;}
  if(b.dataset.bass){const e=exerciseBy(b.dataset.bass),s=settings(e),showBass=!s.showBass;state.settings.set(e.id,{...s,showBass});draw(e.id);b.setAttribute('aria-pressed',String(showBass));b.title=bassButtonLabel(showBass)+(bassReason(e)?'. '+bassReason(e):'');return;}
- if(b.dataset.voicing){const e=exerciseBy(b.dataset.voicing),s=settings(e),inversions=!s.inversions;const playing=player.running&&state.selected===e.id;state.settings.set(e.id,{...s,inversions});b.disabled=true;try{if(playing)await startPlayback(e.id);else draw(e.id);}catch(err){state.settings.set(e.id,s);throw err;}finally{b.disabled=false;}b.setAttribute('aria-pressed',String(inversions));b.title=VOICING_TITLE+'. '+voicingButtonLabel(inversions);if(inversions)explainVoicing(notify);return;}
+ if(b.dataset.voicing){const e=exerciseBy(b.dataset.voicing),s=settings(e),inversions=!s.inversions;const playing=player.isPlaying('exercise:'+e.id);state.settings.set(e.id,{...s,inversions});b.disabled=true;try{if(playing)await startPlayback(e.id,{restart:true});else draw(e.id);}catch(err){state.settings.set(e.id,s);throw err;}finally{b.disabled=false;}b.setAttribute('aria-pressed',String(inversions));b.title=VOICING_TITLE+'. '+voicingButtonLabel(inversions);if(inversions)explainVoicing(notify);return;}
  if(b.dataset.star){const id=b.dataset.star,enabled=!isFavorite(id);await api.favorite(state.user.id,id,enabled);if(enabled)state.data.favorites.push({exercise_id:id});else state.data.favorites=state.data.favorites.filter(f=>f.exercise_id!==id);b.textContent=enabled?'★':'☆';b.classList.toggle('saved',enabled);b.setAttribute('aria-pressed',enabled);return;}
  if(b.dataset.shift){const e=exerciseBy(b.dataset.id),s=settings(e);state.settings.set(e.id,{...s,tonic:transposeKey(s.tonic,s.mode,Number(b.dataset.shift))});await refreshExercise(e.id);return;}
  if(b.id==='menu'||b.id==='landscape-menu')document.body.classList.toggle('menu-open');
- if(b.id==='play-toggle'){if(player.running)player.stop();else if(state.selected)await startPlayback(state.selected);}
- if(b.id==='close-player'){player.stop();$('#player').hidden=true;}
- if(b.id==='loop'){state.loop=!state.loop;b.setAttribute('aria-pressed',state.loop);if(player.running)await startPlayback(state.selected);}
  if(b.id==='print'){player.stop();window.print();}
  if(b.id==='save-notes'){b.disabled=true;try{await persistProgress({notes:$('#notes').value});$('#note-status').textContent='Сохранено';}finally{b.disabled=false;}}
  if(b.id==='complete'){const completed=!progressFor(state.lesson)?.completed;await persistProgress({completed});b.textContent=completed?'✓ Пройдено':'Отметить пройденным';b.setAttribute('aria-pressed',completed);}
- if(b.id==='signout'){clearModes();player.stop();clearScores();let remoteError;try{await api.signOut();}catch(e){remoteError=e;}state.data=null;state.user=null;state.settings.clear();$('[data-view=access]').hidden=true;$('#content').replaceChildren();$('#lesson-nav').replaceChildren();$('#player').hidden=true;$('#shell').hidden=true;login();$('#email').value='';$('#login-status').textContent=remoteError?'Сессия на этом устройстве очищена. Серверный выход не подтверждён: '+remoteError.message:'Вы вышли.';state.selected=null;}
+ if(b.id==='signout'){clearModes();player.stop();clearScores();let remoteError;try{await api.signOut();}catch(e){remoteError=e;}state.data=null;state.user=null;state.settings.clear();$('[data-view=access]').hidden=true;$('#content').replaceChildren();$('#lesson-nav').replaceChildren();$('#shell').hidden=true;login();$('#email').value='';$('#login-status').textContent=remoteError?'Сессия на этом устройстве очищена. Серверный выход не подтверждён: '+remoteError.message:'Вы вышли.';state.selected=null;}
 }));
-document.addEventListener('change',protect(async ev=>{const t=ev.target;if(t.dataset.key){const e=exerciseBy(t.dataset.key);state.settings.set(e.id,{...settings(e),tonic:t.value});await refreshExercise(e.id);}if(t.id==='pattern'){state.pattern=t.value;player.stop();document.querySelectorAll('.exercise').forEach(d=>draw(d.dataset.eid));}if(t.id==='hand'){state.hand=t.value;if(player.running)await startPlayback(state.selected);}if(t.id==='filter'){state.filter=t.value;if(t.value!=='all'){state.genre='all';$('#genre-filter').value='all';}renderResults();}if(t.id==='genre-filter'){state.genre=t.value;if(t.value!=='all'){state.filter='all';$('#filter').value='all';}renderResults();}}));
-$('#tempo').addEventListener('input',ev=>{state.bpm=Number(ev.target.value);$('#tempo-value').textContent=state.bpm;});$('#tempo').addEventListener('change',protect(async()=>{if(player.running)await startPlayback(state.selected);}));
+document.addEventListener('change',protect(async ev=>{const t=ev.target;if(t.id==='pattern'){state.pattern=t.value;player.stop();document.querySelectorAll('.exercise').forEach(d=>draw(d.dataset.eid));}if(t.id==='filter'){state.filter=t.value;if(t.value!=='all'){state.genre='all';$('#genre-filter').value='all';}renderResults();}if(t.id==='genre-filter'){state.genre=t.value;if(t.value!=='all'){state.filter='all';$('#filter').value='all';}renderResults();}}));
 document.addEventListener('input',ev=>{if(ev.target.id==='search'){state.search=ev.target.value;renderResults();}});
-document.addEventListener('keydown',ev=>{if(ev.code==='Space'&&!['INPUT','TEXTAREA','SELECT','BUTTON','SUMMARY'].includes(document.activeElement.tagName)&&state.selected){ev.preventDefault();if(player.running)player.stop();else protect(startPlayback)(state.selected);}if(ev.key==='Escape'){document.body.classList.remove('menu-open');player.stop();}});
+document.addEventListener('keydown',ev=>{if(ev.code==='Space'&&!['INPUT','TEXTAREA','SELECT','BUTTON','SUMMARY'].includes(document.activeElement.tagName)&&state.selected){ev.preventDefault();if(player.active)player.stop();else protect(startPlayback)(state.selected);}if(ev.key==='Escape'){document.body.classList.remove('menu-open');player.stop();}});
 async function enter(user){const epoch=api.epoch,data=await api.load();if(epoch!==api.epoch||!api.session)throw Object.assign(new Error('Сессия завершена. Войди снова.'),{status:401,authExpired:true});state.user=user;state.data=data;if(!state.data.lessons?.length)throw new Error('Личная библиотека пока не заполнена. Вход подтверждён, материалы ещё не загружены.');$('#gate').hidden=true;$('#shell').hidden=false;const m=/^#lesson-(\d+)$/.exec(location.hash);if(m){state.view='lesson';state.lesson=Number(m[1]);}else if(['#reference','#modes','#library','#favorites','#access'].includes(location.hash)){state.view=location.hash.slice(1);}render();ready();api.startAutoRefresh(()=>exitToLogin('Сессия завершена. Войди снова.'));}
 $('#login-form').addEventListener('submit',async ev=>{ev.preventDefault();const b=$('#send');b.disabled=true;try{await api.send($('#email').value);$('#login-status').textContent='Открой ссылку из нового письма.';$('#code-form').hidden=false;}catch(e){$('#login-status').textContent=e.message;}finally{setTimeout(()=>b.disabled=!api.configured,60000);}});
 $('#code-form').addEventListener('submit',async ev=>{
@@ -130,7 +138,7 @@ function exitToLogin(message){
  state.data=null;state.user=null;state.selected=null;state.settings.clear();
  document.body.classList.remove('menu-open');
  $('#content').replaceChildren();$('#lesson-nav').replaceChildren();
- $('[data-view=access]').hidden=true;$('#player').hidden=true;$('#shell').hidden=true;
+ $('[data-view=access]').hidden=true;$('#shell').hidden=true;
  login(message);
 }
 let booting=false;

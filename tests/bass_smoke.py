@@ -1,3 +1,4 @@
+from inline_helpers import choose_key, stop_card
 """Synthetic responses only. Per-card bass visibility, pitch sync, playback and phone layouts."""
 import asyncio, functools, json, os, threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -61,7 +62,7 @@ async def main():
    assert len(set(await notes(pedal).evaluate_all('(ns)=>ns.map(n=>+n.dataset.midi)')))==1
    initial=await notes(descent).evaluate_all('(ns)=>ns.map(n=>+n.dataset.midi)')
    assert initial[:7]==[48,47,45,43,41,40,38]
-   await descent.locator('[data-key]').select_option('Db')
+   await choose_key(descent.locator('[data-key]'),'Db')
    shifted=await notes(descent).evaluate_all('(ns)=>ns.map(n=>+n.dataset.midi)')
    assert shifted==[x+1 for x in initial]
    async def fits():
@@ -84,11 +85,11 @@ async def main():
    await descent.locator('[data-bass]').click()
    await expect(descent.locator('[data-clef="bass"]')).to_have_count(0)
    assert await page.evaluate('window.testPlayCalls')==1
-   await expect(page.locator('#play-toggle')).to_have_text('■')
+   await expect(descent.locator('[data-play]')).to_have_attribute('aria-pressed','true')
    await descent.locator('[data-bass]').click()
    assert await page.evaluate('window.testPlayCalls')==1
    assert await descent.locator('[data-clef="bass"]').count()>0
-   await page.locator('#close-player').click();await fits()
+   await stop_card(page);await fits()
    await descent.screenshot(path=str(OUT/f'bass-arpeggio-{engine.name}-{width}x{height}.png'))
    if height<520 and width>height:
     await expect(page.locator('.topbar')).to_be_hidden()
