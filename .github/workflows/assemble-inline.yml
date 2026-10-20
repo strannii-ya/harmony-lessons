@@ -1,0 +1,63 @@
+name: Assemble and verify inline cards
+on:
+  push:
+    branches: [ui-inline-cards]
+    paths: [scripts/apply-inline-edit.py, .github/workflows/assemble-inline.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ui-inline-cards
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Apply reviewed source edits on the isolated branch
+        run: |
+          python scripts/apply-inline-edit.py
+          git rm scripts/apply-inline-edit.py .github/workflows/assemble-inline.yml
+          git add site tests .github/workflows/pages.yml
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Use inline 90 BPM card playback, connected voicings and simplified navigation'
+          git push origin HEAD:ui-inline-cards
+      - name: Build and check all models
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run prepare:engraving
+          npm test
+          npm run build
+      - name: Install pinned browsers
+        run: |
+          python -m pip install --quiet playwright==1.56.0
+          python -m playwright install --with-deps chromium webkit > /tmp/inline-browsers.log 2>&1 || { tail -60 /tmp/inline-browsers.log; exit 1; }
+      - name: Verify new playback and layout plus existing behavior
+        run: |
+          python tests/inline_smoke.py
+          python tests/controls_smoke.py
+          python tests/card_layout_smoke.py
+          python tests/voicings_smoke.py
+          python tests/bass_smoke.py
+          python tests/modes_smoke.py
+          python tests/library_smoke.py
+          python tests/paper_smoke.py
+          python tests/mobile_smoke.py
+          python tests/engraving_smoke.py
+      - name: Save synthetic previews and exact public sources
+        if: always()
+        run: |
+          mkdir -p workbench
+          git archive HEAD > workbench/source.tar
+          test ! -d site/vendor || tar -rf workbench/source.tar site/vendor
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: inline-assembled-checks
+          path: |
+            workbench/source.tar
+            ui-results
+          retention-days: 3
