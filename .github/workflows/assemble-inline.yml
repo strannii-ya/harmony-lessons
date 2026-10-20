@@ -20,8 +20,9 @@ jobs:
       - name: Apply reviewed source edits on the isolated branch
         run: |
           python scripts/apply-inline-edit.py
-          git rm scripts/apply-inline-edit.py .github/workflows/assemble-inline.yml
-          git add site tests .github/workflows/pages.yml
+          git restore .github/workflows/pages.yml
+          git rm scripts/apply-inline-edit.py
+          git add site tests
           git diff --cached --check
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Use inline 90 BPM card playback, connected voicings and simplified navigation'
           git push origin HEAD:ui-inline-cards
