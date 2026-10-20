@@ -41,7 +41,6 @@
   padding: 8px 10px; border: 0; background: transparent; box-shadow: none;
   font-size: 15px; color: var(--muted);
 }
-#sidebar .sidebar-bottom #signout:hover { color: var(--accent); }
 @media (max-width: 600px) {
   #content .exercise-heading { padding: 16px 54px 6px 12px; gap: 8px; }
   #content .exercise-title { font-size: 19px; }
@@ -80,12 +79,53 @@
   color: var(--accent); border: 0; box-shadow: none; background: transparent;
 }
 #content .guide-actions .icon-play svg { width: 26px; height: 26px; }
-#sidebar .primary-nav { display: grid; gap: 6px; }
-#sidebar .primary-nav button {
-  background: #ede7dd; border: 0; color: #514b42; box-shadow: none;
+/* Touch-first navigation: light targets on a darker warm panel. Selection
+   has a persistent rail and weight; neither discovery nor state needs hover. */
+aside#sidebar {
+  --sidebar-bg: #d4c9b9; --sidebar-button: #faf7f1;
+  --sidebar-selected: #fffdf8; --sidebar-ink: #484035;
+  --sidebar-muted: #5d5348; --sidebar-accent: #855331;
+  background: var(--sidebar-bg); color: var(--sidebar-ink); border-right: 0;
 }
-#sidebar .primary-nav button.active { background: #ddceb7; color: #593b20; }
-#sidebar .primary-nav button:hover { background: #e5daca; color: #593b20; }
+#sidebar .brand { color: var(--sidebar-ink); }
+#sidebar .primary-nav { display: grid; gap: 6px; border-bottom-color: #bbae9b; }
+#sidebar :is(.sidebar-label, .chapter-label) { color: var(--sidebar-muted); }
+#sidebar .primary-nav button, #sidebar .lesson-link {
+  position: relative; min-height: 44px; border: 0; box-shadow: none;
+  background: var(--sidebar-button); color: var(--sidebar-ink);
+  text-align: left; touch-action: manipulation;
+}
+#sidebar .lesson-link { margin-block: 4px; background: #eee7db; }
+#sidebar .lesson-link .num { color: var(--sidebar-muted); }
+#sidebar :is(.primary-nav button, .lesson-link)::before {
+  content: ''; position: absolute; left: 0; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 0 2px 2px 0;
+  background: var(--sidebar-accent); opacity: 0; pointer-events: none;
+}
+#sidebar :is(.primary-nav button, .lesson-link).active {
+  background: var(--sidebar-selected); color: #674321; font-weight: 600;
+}
+#sidebar :is(.primary-nav button, .lesson-link).active::before { opacity: 1; }
+#sidebar .lesson-link.active .num { color: #674321; }
+#sidebar .sidebar-bottom { background: var(--sidebar-bg); border-top-color: #bbae9b; }
+#sidebar .sidebar-bottom #signout { color: var(--sidebar-ink); background: transparent; }
+#sidebar .nav-close {
+  min-width: 44px; min-height: 44px; border: 0; box-shadow: none;
+  background: var(--sidebar-button); color: var(--sidebar-ink);
+}
+#sidebar :is(button, a):focus-visible {
+  outline: 2px solid var(--sidebar-accent); outline-offset: 2px;
+}
+/* Hover is optional, and never overrides the current section. */
+@media (hover: hover) and (pointer: fine) {
+  #sidebar .primary-nav button:not(.active):hover,
+  #sidebar .lesson-link:not(.active):hover,
+  #sidebar .nav-close:hover { background: #fffdf8; }
+  #sidebar .sidebar-bottom #signout:hover { background: #e6dccd; }
+}
+/* Immediate feedback while a finger is down, without sticky hover on touch. */
+#sidebar :is(.primary-nav button, .lesson-link, .nav-close):active,
+#sidebar .sidebar-bottom #signout:active { background: #e7d5bb; }
 aside#sidebar { padding-bottom: max(56px, env(safe-area-inset-bottom)); }
 aside#sidebar .sidebar-bottom {
   padding: 2px 0; margin-top: 8px; min-height: 0;
