@@ -1,5 +1,5 @@
 from inline_helpers import choose_key, stop_card
-"""Synthetic course only. Card anatomy, four-bar phone phrases, sidebar and preserved controls."""
+"""Synthetic course only. Card anatomy, five-bar phone phrases, sidebar and preserved controls."""
 import asyncio,functools,threading,json
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
@@ -7,8 +7,8 @@ from playwright.async_api import async_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'ui-results';OUT.mkdir(exist_ok=True)
 USER='11111111-1111-4111-8111-111111111111'
 EXAMPLES=[
- {'id':'card-major','title':'Тоника, субдоминанта и доминанта','mode':'major','progression':['I','IV','V7','I','vi','ii7','V7','I']},
- {'id':'card-minor','title':'Минорный оборот и разрешение доминанты','mode':'minor','progression':['i','iv','V7','i']},
+ {'id':'card-major','title':'Тоника, субдоминанта и доминанта','mode':'major','progression':['I','IV','V7','I','vi','ii7','V7','I','IV','I']},
+ {'id':'card-minor','title':'Минорный оборот и разрешение доминанты','mode':'minor','progression':['i','iv','V7','i','VI','iiø7','V7','i','iv','i']},
  {'id':'card-modulation','title':'Отклонение в параллельную тональность','mode':'major','progression':['I','V7/vi',{'symbol':'i','mode':'minor','offset':9},{'symbol':'V7','mode':'minor','offset':9},{'symbol':'i','mode':'minor','offset':9}]},
  {'id':'card-pedal','title':'Созвучия над органным пунктом','mode':'major','progression':[{'symbol':s,'bass':'5'} for s in ['I','IV','V7','I']]},
  {'id':'card-jazz','title':'Нонаккорды в джазовом обороте','mode':'major','genre':'jazz','progression':['ii9','V9','Imaj9','Imaj9']}
@@ -74,13 +74,20 @@ async def scenario(engine,w,h,base):
   portrait=w<=600 and h>w
   for tonic in ['C','Db','F#','Bb','B']:
    await choose_key(first.locator('[data-key]'),tonic);await fits()
-   if portrait:assert await first.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[4,4]
+   if portrait:assert await first.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[5,5]
+  # Minor leading tones and dense key signatures must also retain five bars.
+  minor=page.locator('[data-eid=card-minor]')
+  for tonic in ['A','C','C#','Eb','F#','Bb']:
+   await choose_key(minor.locator('[data-key]'),tonic);await fits()
+   if portrait:assert await minor.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[5,5]
+  await minor.locator('[data-bass]').click();await fits()
+  if portrait:assert await minor.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[5,5]
   await choose_key(first.locator('[data-key]'),'C')
   await first.locator('[data-bass]').click();await first.locator('[data-voicing]').click();await fits()
-  if portrait:assert await first.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[4,4]
+  if portrait:assert await first.locator('[data-system]').evaluate_all('ns=>ns.map(n=>n.querySelectorAll(".score-measure").length)')==[5,5]
   await first.screenshot(path=str(OUT/f'cards-bass-{engine.name}-{w}x{h}.png'))
   await first.locator('[data-play]').click();await expect(page.locator('[data-play][aria-pressed="true"]')).to_have_count(1);await stop_card(page)
-  await page.select_option('#pattern','arpeggio');await fits();assert await first.locator('.score-measure').count()==8
+  await page.select_option('#pattern','arpeggio');await fits();assert await first.locator('.score-measure').count()==10
   await page.select_option('#pattern','chords')
   await first.locator('[data-star]').click();await expect(first.locator('[data-star]')).to_have_attribute('aria-pressed','true')
   await nav('favorites');await expect(page.locator('.exercise')).to_have_count(1);await fits()
@@ -98,7 +105,7 @@ async def scenario(engine,w,h,base):
   await page.screenshot(path=str(OUT/f'cards-menu-{engine.name}-{w}x{h}.png'))
   await page.locator('#signout').click();await expect(page.locator('#gate')).to_be_visible();await expect(page.locator('#shell')).to_be_hidden()
   assert not errors,errors
-  print(f'PASS cards {engine.name} {w}x{h}: favorite header, tinted footers, four-bar phone phrases, preserved controls, text sidebar, logout',flush=True)
+  print(f'PASS cards {engine.name} {w}x{h}: favorite header, tinted footers, five-bar phone phrases, preserved controls, text sidebar, logout',flush=True)
  finally:await ctx.close();await browser.close()
 async def main():
  server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT/'dist')));threading.Thread(target=server.serve_forever,daemon=True).start()

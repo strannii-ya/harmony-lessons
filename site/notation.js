@@ -25,15 +25,16 @@ function paint(container,score,forcedWidth,options={}){
  const actual=container.clientWidth||800,scale=options.scale??.75;
  if(!Number.isFinite(scale)||scale<=0)throw new Error('Неверный масштаб нот');
  const portrait=!forcedWidth&&options.showLabels!==false&&typeof matchMedia==='function'&&matchMedia('(max-width: 600px) and (orientation: portrait)').matches;
- const layoutOptions=portrait?{...options,compact:true,barsPerSystem:4}:options;
+ const layoutOptions=portrait?{...options,compact:true,barsPerSystem:5}:options;
  let layoutWidth=(forcedWidth||actual)/scale;
  if(portrait&&score.bars.every(b=>b.rh.length===1)){
-  // Four block-chord measures form a complete phrase on phones. Use tighter
-  // spacing first; allow only a modest scale change for dense key signatures.
-  // Wide arpeggios keep natural line breaks rather than microscopic noteheads.
+  // Prefer five block-chord measures on portrait phones. Keep the compact
+  // spacing and scale uniformly only when needed; the floor also accommodates
+  // dense signatures on 320px phones. Never squeeze glyph spacing, and let
+  // wide arpeggios or unusually dense chords keep their natural line breaks.
   const phrase=planEngraving(score,10000,layoutOptions);
-  const needed=Math.max(...phrase.rows.map(row=>row.used+32));
-  layoutWidth=Math.max(layoutWidth,Math.min(needed,actual/.62));
+  const needed=Math.ceil(Math.max(...phrase.rows.map(row=>row.used+32)))+1;
+  layoutWidth=Math.max(layoutWidth,Math.min(needed,actual/.49));
  }
  const plan=planEngraving(score,layoutWidth,layoutOptions);
  const active=container.querySelector('.playing')?.dataset.scoreBar;
