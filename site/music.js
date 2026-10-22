@@ -21,7 +21,7 @@ export function compactTones(tones){
 export function arpeggioPattern(tones){
  if(tones.length===2){const [a,b]=tones;return [a,b,shiftNote(a,12),shiftNote(b,12),shiftNote(a,24),shiftNote(b,12),shiftNote(a,12),b];}
  if(tones.length===5)return [tones[0],tones[2],shiftNote(tones[1],12),shiftNote(tones[3],12),shiftNote(tones[4],12),shiftNote(tones[3],12),shiftNote(tones[1],12),tones[2]];
- if(tones.length>5)throw new Error('Для полного расширенного аккорда выбери аккордовую фактуру.');
+ if(tones.length>5)throw new Error('Для полного расширенного аккорда выберите аккордовую фактуру.');
  return [tones[0],tones[2],shiftNote(tones[1],12),shiftNote(tones.at(-1),12),shiftNote(tones[0],24),shiftNote(tones.at(-1),12),shiftNote(tones[1],12),tones[2]];
 }
 /** Plain scale degrees always refer to the parallel major: minor uses bIII, bVI, bVII. */

@@ -12,19 +12,19 @@ function providerInfo(name) {
 const LEGACY_SESSION = 'harmony.session';
 const encode64 = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 export async function pkcePair() {
-  if (!globalThis.crypto?.subtle) throw new Error('Для входа открой сайт по HTTPS в обычном браузере.');
+  if (!globalThis.crypto?.subtle) throw new Error('Для входа откройте сайт по HTTPS в обычном браузере.');
   const verifier = encode64(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = encode64(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
   return {verifier, challenge};
 }
 export function authFailure(code, provider='google') {
   const label=PROVIDERS[provider]?.label || 'выбранный сервис';
-  if (code === 'access_denied') return `Вход через ${label} отменён или аккаунт не приглашён. Начни вход заново и выбери аккаунт, которому выдан доступ.`;
+  if (code === 'access_denied') return `Вход через ${label} отменён или аккаунт не приглашён. Начните вход заново и выберите аккаунт, которому выдан доступ.`;
   if (['provider_disabled','validation_failed','unsupported_provider','custom_provider_not_found'].includes(code))
     return provider==='yandex' ? YANDEX_SETUP_MESSAGE : OAUTH_SETUP_MESSAGE;
   if (['email_not_found','email_not_verified','provider_email_needs_verification'].includes(code))
-    return 'Сервис не подтвердил подходящий адрес почты. Проверь основной email аккаунта и приглашение в учебник.';
-  return `Не удалось завершить вход через ${label}. Нажми кнопку входа заново в этом браузере.`;
+    return 'Сервис не подтвердил подходящий адрес почты. Проверьте основной email аккаунта и приглашение в учебник.';
+  return `Не удалось завершить вход через ${label}. Нажмите кнопку входа заново в этом браузере.`;
 }
 export const isTransientAuthError = e => e?.status === 0 || e?.status === 408 || e?.status === 429 || e?.status >= 500;
 function sessionError(message='Сессия завершена. Войди снова.') { return Object.assign(new Error(message), {status:401, authExpired:true}); }
@@ -157,11 +157,11 @@ export class AuthSession {
       let response;
       try { response=await fetch(url.href,{redirect:'manual',cache:'no-store',credentials:'omit',
         headers:{apikey:this.key},signal:AbortSignal.timeout(15000)}); }
-      catch { throw new Error('Не удалось проверить Яндекс-вход. Проверь интернет и повтори попытку.'); }
+      catch { throw new Error('Не удалось проверить Яндекс-вход. Проверьте интернет и повторите попытку.'); }
       if(response.type!=='opaqueredirect') {
         if ([400,404].includes(response.status)) throw new Error(YANDEX_SETUP_MESSAGE);
-        if (response.status===429) throw new Error('Слишком много попыток входа. Повтори немного позже.');
-        throw new Error('Сервис входа временно недоступен. Попробуй ещё раз позже.');
+        if (response.status===429) throw new Error('Слишком много попыток входа. Повторите немного позже.');
+        throw new Error('Сервис входа временно недоступен. Попробуйте ещё раз позже.');
       }
     }
     this.setRemember(remember);
@@ -182,7 +182,7 @@ export class AuthSession {
       cleanCallback();
       if (!pending || !/^[A-Za-z0-9_-]{43}$/.test(pending.verifier) || pending.redirectTo!==location.origin+location.pathname || Date.now()-pending.startedAt>600000 || !Number.isFinite(pending.startedAt) || pending.startedAt>Date.now() || typeof code!=='string' || code.length>4096 || (pending.provider!==undefined&&!Object.hasOwn(PROVIDERS,pending.provider))) {
         remove(storage('sessionStorage'),this.pkceKey);
-        throw new Error('Вход начат в другой вкладке или истёк. Нажми нужную кнопку входа здесь заново.');
+        throw new Error('Вход начат в другой вкладке или истёк. Нажмите нужную кнопку входа здесь заново.');
       }
       set(storage('sessionStorage'),this.pkceKey,JSON.stringify({...pending,authCode:code}));
       try { this.store(await this.request('/auth/v1/token?grant_type=pkce',{method:'POST',body:{auth_code:code,code_verifier:pending.verifier}}));remove(storage('sessionStorage'),this.pkceKey); }

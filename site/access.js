@@ -1,5 +1,5 @@
 /** Owner UI only. Authorization and account binding are enforced by database policies and triggers. */
-export const accessHTML = () => `<section class="page-heading"><h1>Доступ</h1><p class="access-lead">Добавь email аккаунта друга в Google или Яндексе и отправь ему ссылку на учебник.</p></section>
+export const accessHTML = () => `<section class="page-heading"><h1>Доступ</h1><p class="access-lead">Добавьте email аккаунта друга в Google или Яндексе и отправь ему ссылку на учебник.</p></section>
 <section class="access-panel" aria-labelledby="invite-title"><h2 id="invite-title">Добавить аккаунт</h2>
 <form id="invite-form"><label for="invite-email">Email для входа</label><div class="invite-input-row"><input id="invite-email" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="friend@example.com" required><button type="submit" class="primary">Добавить</button></div></form>
 <p class="access-help">Письмо не отправляется. Друг выбирает Google или Яндекс и входит с приглашённым email. Разные адреса считаются разными аккаунтами; @ya.ru и @yandex.ru здесь не заменяются автоматически. Уроки общие; заметки, избранное и прогресс у каждого свои.</p>
@@ -19,7 +19,7 @@ export function mountAccess(root, api) {
   $('#share-url').value = location.origin + location.pathname;
   function renderList() {
     list.replaceChildren();
-    if (!rows.length) { const p = document.createElement('p'); p.className = 'access-empty'; p.textContent = 'Пока никого нет. Добавь первый адрес выше.'; list.append(p); return; }
+    if (!rows.length) { const p = document.createElement('p'); p.className = 'access-empty'; p.textContent = 'Пока никого нет. Добавьте первый адрес выше.'; list.append(p); return; }
     for (const entry of rows) {
       const row = document.createElement('article'); row.className = 'access-person'; row.dataset.accessId = entry.id;
       const info = document.createElement('div'); info.className = 'access-person-info';
@@ -49,7 +49,7 @@ export function mountAccess(root, api) {
     try {
       const email = input.value.trim().toLowerCase();
       const existing = rows.find(row => row.email === email);
-      if (existing) { say(existing.active ? 'Этот аккаунт уже имеет доступ.' : 'Этот адрес уже в списке. Нажми «Вернуть доступ» рядом с ним.'); return; }
+      if (existing) { say(existing.active ? 'Этот аккаунт уже имеет доступ.' : 'Этот адрес уже в списке. Нажмите «Вернуть доступ» рядом с ним.'); return; }
       await api.inviteAccount(email);
       if (!alive()) return;
       input.value = ''; say('Доступ добавлен. Отправь другу ссылку на учебник.'); await refresh(); input.focus();
