@@ -10,7 +10,8 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  browser-checks:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - name: Checkout reviewed source
@@ -71,14 +72,36 @@ jobs:
           name: mobile-interface-checks
           path: ui-results
           retention-days: 7
+
+
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Use Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install integrity-pinned engraving dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run prepare:engraving
+      - name: Verify academic music model, editorial style and privacy boundary
+        run: npm test
+      - name: Build public interface
+        run: npm run build
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: dist
+
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: publish
     runs-on: ubuntu-latest
     permissions:
       contents: read
