@@ -6,7 +6,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'ui-results';OUT.mkdir(exist_ok=True)
 USER='11111111-1111-4111-8111-111111111111'
-THEORY={'sections':[{'title':'Сначала послушай','paragraphs':['Сыграй последовательность, сохраняя общие звуки на месте. Затем сравни расположения правой руки.']}], 'figure':{'steps':[{'label':'T','note':'Тоника'},{'label':'S','note':'Субдоминанта'},{'label':'D','note':'Доминанта'}],'caption':'Учебная схема.'}}
+THEORY={'sections':[{'title':'Сначала послушайте','paragraphs':['Сыграйте последовательность, сохраняя общие звуки на месте. Затем сравните расположения правой руки.']}], 'figure':{'steps':[{'label':'T','note':'Тоника'},{'label':'S','note':'Субдоминанта'},{'label':'D','note':'Доминанта'}],'caption':'Учебная схема.'}}
 FIXTURE={'lessons':[{'id':1,'position':1,'chapter':1,'chapter_title':'Практика','title':'Гармонические обороты','goal':'Сравнить расположения.','preparation':['Сыграть оборот.'],'topics':['Голосоведение'],'theory':THEORY}], 'exercises':[{'id':'paper-major','lesson_id':1,'position':1,'title':'Общие звуки и движение голосов','mode':'major','progression':['I','vi7','ii7','V7','I'],'goal':'Сравнить окончания.','discuss':'Проследить движение голосов.','theory':THEORY},{'id':'paper-bass','lesson_id':1,'position':2,'title':'Нисходящий бас','mode':'minor','progression':[{'symbol':'i','bass':'1'},{'symbol':'V6','bass':'7'},'iv','V7','i'],'goal':'Проследить бас.','discuss':'Сравнить обе руки.','theory':THEORY}], 'favorites':[{'exercise_id':'paper-major'}], 'progress':[], 'library_access':[]}
 class Quiet(SimpleHTTPRequestHandler):
  def log_message(self,*args):pass

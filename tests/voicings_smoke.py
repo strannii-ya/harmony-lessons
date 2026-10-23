@@ -6,7 +6,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright, expect
 ROOT=Path(__file__).resolve().parents[1];PUBLIC=ROOT/'dist';OUT=ROOT/'ui-results';OUT.mkdir(exist_ok=True)
 USER='11111111-1111-4111-8111-111111111111'
-THEORY={'sections':[{'title':'Проверка','paragraphs':['Сравни до мажор и ля минор. Затем сыграй в си-бемоль мажоре и си миноре.']} ]}
+THEORY={'sections':[{'title':'Проверка','paragraphs':['Сравните до мажор и ля минор. Затем сыграйте в си-бемоль мажоре и си миноре.']} ]}
 EXAMPLES=[
  {'id':'voice-basic','title':'Плавные переходы','mode':'major','progression':['I','IV','V','I']},
  {'id':'voice-sevenths','title':'Септаккорды','mode':'major','progression':['Imaj7','vi7','ii7','V7'],'loop':True},

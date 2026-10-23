@@ -7,9 +7,9 @@ from playwright.async_api import async_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'ui-results';OUT.mkdir(exist_ok=True)
 KEY='harmony.synthetic.supabase.co.session'
 USER='11111111-1111-4111-8111-111111111111'
-THEORY={'sections':[{'title':'Главные функции','paragraphs':['Сыграй оборот и сравни движение голосов.']} ]}
+THEORY={'sections':[{'title':'Главные функции','paragraphs':['Сыграйте оборот и сравните движение голосов.']} ]}
 DATA={'lessons':[{'id':1,'position':1,'chapter':1,'chapter_title':'Практика','title':'Движение голосов','goal':'Сравнить созвучия.','preparation':['Повтори основные функции.'],'topics':['Общие звуки.'],'theory':THEORY}],
- 'exercises':[{'id':'auth-example','lesson_id':1,'position':1,'title':'Плавные переходы','mode':'major','progression':['I','IV','V7','I'],'goal':'Сохраняй общие звуки.','discuss':'Сравнить положения.','loop':False,'theory':THEORY}],'progress':[],'favorites':[]}
+ 'exercises':[{'id':'auth-example','lesson_id':1,'position':1,'title':'Плавные переходы','mode':'major','progression':['I','IV','V7','I'],'goal':'Сохраняйте общие звуки.','discuss':'Сравнить положения.','loop':False,'theory':THEORY}],'progress':[],'favorites':[]}
 PAIR={'access_token':'synthetic-old','refresh_token':'synthetic-refresh','expires_at':4102444800}
 class Quiet(SimpleHTTPRequestHandler):
  def log_message(self,*args):pass

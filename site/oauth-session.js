@@ -27,13 +27,13 @@ export function authFailure(code, provider='google') {
   return `Не удалось завершить вход через ${label}. Нажмите кнопку входа заново в этом браузере.`;
 }
 export const isTransientAuthError = e => e?.status === 0 || e?.status === 408 || e?.status === 429 || e?.status >= 500;
-function sessionError(message='Сессия завершена. Войди снова.') { return Object.assign(new Error(message), {status:401, authExpired:true}); }
+function sessionError(message='Сессия завершена. Войдите снова.') { return Object.assign(new Error(message), {status:401, authExpired:true}); }
 function storage(name) { try { return globalThis[name]; } catch { return null; } }
 function get(store, key) { try { return store?.getItem(key) ?? null; } catch { return null; } }
 function remove(store, key) { try { store?.removeItem(key); } catch { /* already unavailable */ } }
 function set(store, key, value) {
   try { if (!store) throw new Error(); store.setItem(key, value); }
-  catch { throw Object.assign(new Error('Браузер запретил сохранение входа. Разреши данные сайта или отключи «Запомнить на этом устройстве».'), {status:0}); }
+  catch { throw Object.assign(new Error('Браузер запретил сохранение входа. Разрешите сохранение данных сайта или отключите «Запомнить на этом устройстве».'), {status:0}); }
 }
 function cleanCallback() {
   const url = new URL(location.href);
@@ -63,7 +63,7 @@ export class AuthSession {
     if (this.session) this.store(this.session);
   }
   store(input) {
-    if (!input?.access_token || !input?.refresh_token) throw new Error('Нет действительной сессии. Войди заново.');
+    if (!input?.access_token || !input?.refresh_token) throw new Error('Нет действительной сессии. Войдите заново.');
     const expires = Number(input.expires_at) || Math.floor(Date.now()/1000) + (Number(input.expires_in) || 3600);
     // Deliberately discard provider_token, provider_refresh_token, user metadata and all unknown fields.
     const session = {access_token:input.access_token, refresh_token:input.refresh_token, expires_at:expires, token_type:'bearer'};

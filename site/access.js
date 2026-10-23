@@ -1,5 +1,5 @@
 /** Owner UI only. Authorization and account binding are enforced by database policies and triggers. */
-export const accessHTML = () => `<section class="page-heading"><h1>Доступ</h1><p class="access-lead">Добавьте email аккаунта друга в Google или Яндексе и отправь ему ссылку на учебник.</p></section>
+export const accessHTML = () => `<section class="page-heading"><h1>Доступ</h1><p class="access-lead">Добавьте email аккаунта друга в Google или Яндексе и отправьте ему ссылку на учебник.</p></section>
 <section class="access-panel" aria-labelledby="invite-title"><h2 id="invite-title">Добавить аккаунт</h2>
 <form id="invite-form"><label for="invite-email">Email для входа</label><div class="invite-input-row"><input id="invite-email" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="friend@example.com" required><button type="submit" class="primary">Добавить</button></div></form>
 <p class="access-help">Письмо не отправляется. Друг выбирает Google или Яндекс и входит с приглашённым email. Разные адреса считаются разными аккаунтами; @ya.ru и @yandex.ru здесь не заменяются автоматически. Уроки общие; заметки, избранное и прогресс у каждого свои.</p>
@@ -52,9 +52,9 @@ export function mountAccess(root, api) {
       if (existing) { say(existing.active ? 'Этот аккаунт уже имеет доступ.' : 'Этот адрес уже в списке. Нажмите «Вернуть доступ» рядом с ним.'); return; }
       await api.inviteAccount(email);
       if (!alive()) return;
-      input.value = ''; say('Доступ добавлен. Отправь другу ссылку на учебник.'); await refresh(); input.focus();
+      input.value = ''; say('Доступ добавлен. Отправьте другу ссылку на учебник.'); await refresh(); input.focus();
     } catch (error) {
-      say(error.code === '23505' ? 'Этот адрес уже добавлен. Обнови список.' : error.message);
+      say(error.code === '23505' ? 'Этот адрес уже добавлен. Обновите список.' : error.message);
     } finally { if (alive()) button.disabled = false; }
   });
   list.addEventListener('click', async event => {
@@ -69,7 +69,7 @@ export function mountAccess(root, api) {
   $('#refresh-access').addEventListener('click', () => { say(''); refresh().catch(error => say(error.message)); });
   $('#copy-share').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText($('#share-url').value); say('Ссылка скопирована.'); }
-    catch { if (!alive()) return; $('#share-url').focus(); $('#share-url').select(); say('Ссылка выделена — скопируй её из поля.'); }
+    catch { if (!alive()) return; $('#share-url').focus(); $('#share-url').select(); say('Ссылка выделена — скопируйте её из поля.'); }
   });
   refresh().catch(error => say(error.message));
 }
