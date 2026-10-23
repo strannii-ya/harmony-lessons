@@ -1,0 +1,60 @@
+/* Music diagrams use private lesson data; only generic drawing rules ship with the site. */
+.lesson-visual {
+  --vis-ink: #604b33;
+  --vis-mute: #857664;
+  --vis-line: #c8b79e;
+  --vis-accent: #91613a;
+  display: block;
+  color: var(--vis-ink);
+  font-size: 12px;
+}
+.lesson-visual svg { display: block; width: 100%; height: auto; overflow: visible; }
+.lesson-visual svg text { font-family: Inter, 'Segoe UI', Arial, sans-serif; paint-order: stroke; }
+.lesson-visual--mini {
+  width: 100%; margin: auto 0 0; padding: 8px 6px 4px;
+  background: #f7f1e7; border: 1px solid #e9dfd0; border-radius: 8px;
+}
+.course-card .lesson-visual--mini + .status-pill { margin-top: 8px; }
+.course-card:has(.lesson-visual--mini) { min-height: 244px; }
+.lesson-visual--full {
+  max-width: 760px; margin: 19px 0 25px; padding: 15px 18px 13px;
+  background: #f7f2e9; border: 1px solid #e7d9c6;
+  border-radius: 11px; overflow-x: auto; box-shadow: 0 2px 9px #53402707;
+}
+.lesson-visual--full svg { min-width: 460px; }
+.lesson-visual-title { font-size: 13px; font-weight: 650; color: #624626; margin: 0 0 4px; }
+.lesson-visual figcaption { font-size: 12px; color: #746856; line-height: 1.55; margin: 5px 0 0; }
+.vis-block { fill: #fffdf9; stroke: #d8c7ab; stroke-width: 1.7; }
+.vis-block-alt { fill: #ede1d0; stroke: #c9ad86; }
+.vis-block-final { fill: #e9d7bc; stroke: #bd9a6e; }
+.vis-arrow, .vis-connector { fill: none; stroke: #a88a67; stroke-width: 2; stroke-linecap: round; }
+.vis-arrow-tip { fill: none; stroke: #a88a67; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.vis-staff { fill: none; stroke: #b7aa96; stroke-width: 1.2; }
+.vis-clef { fill: #927a56; }
+.vis-main { fill: #74502d; font: 600 24px Georgia, serif; }
+.vis-main-small { fill: #74502d; font: 600 18px Georgia, serif; }
+.vis-heading { fill: #725537; font: 600 17px Inter, 'Segoe UI', sans-serif; }
+.vis-heading-small { fill: #725537; font: 600 16px Inter, 'Segoe UI', sans-serif; }
+.vis-tiny-heading { fill: #785d3c; font: 600 14px Inter, 'Segoe UI', sans-serif; }
+.vis-label { fill: #745c40; font: 15px Inter, 'Segoe UI', sans-serif; }
+.vis-detail { fill: #7b6a54; font: 13px Inter, 'Segoe UI', sans-serif; }
+.vis-detail-mini { fill: #7b6042; font: 15px Georgia, serif; }
+.vis-chord { fill: #755236; font: 22px Georgia, serif; }
+.vis-note-main { fill: #925b38; stroke: #734122; stroke-width: .8; }
+.vis-note-secondary { fill: #7b896b; stroke: #5e7054; stroke-width: .8; }
+.vis-accidental { fill: #835532; font: 22px Georgia, serif; }
+.vis-degree { fill: #8a6e4d; font: 18px Georgia, serif; }
+.vis-primary-key { fill: #925b38; font: 12px Inter, 'Segoe UI', sans-serif; }
+.vis-secondary-key { fill: #647653; font: 12px Inter, 'Segoe UI', sans-serif; }
+.vis-row { fill: #746249; font: 13px Inter, 'Segoe UI', sans-serif; }
+.vis-row-small { fill: #746249; font: 13px Inter, 'Segoe UI', sans-serif; }
+.vis-cell { fill: #fffcf7; stroke: #d8c6a9; stroke-width: 1.2; }
+.vis-cell-accent { fill: #ebd5b8; stroke: #bc9969; }
+.vis-cell-text { fill: #725132; font: 600 16px Georgia, serif; }
+.vis-cell-text-small { fill: #725132; font: 600 14px Georgia, serif; }
+.vis-enharmonic { fill: #87582f; font: 600 31px Georgia, serif; }
+@media (max-width: 600px) {
+  .lesson-visual--full { margin-inline: -3px; padding: 12px 11px; }
+  .lesson-visual--full svg { min-width: 450px; }
+}
+@media print { .lesson-visual--mini { break-inside: avoid; } }
