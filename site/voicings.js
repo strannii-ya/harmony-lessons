@@ -18,6 +18,9 @@ export function voicingCandidates(bar) {
   throw new Error('Для одной руки поддерживается от двух до пяти разных аккордовых тонов.');
  const result=[];
  for(let inversion=0;inversion<tones.length;inversion++) {
+  // Cadential K64 is taught as a genuine second-inversion shape in both staves.
+  // Keep its fixed RH inversion even when the surrounding hand positions are optimized.
+  if(bar.cadential && inversion!==bar.inversion)continue;
   const rotated=[...tones.slice(inversion),...tones.slice(0,inversion).map(n=>shiftNote(n,12))];
   // Absolute bounds avoid a register jump when crossing a transposition's C boundary.
   for(let octave=-3;octave<=2;octave++) {
