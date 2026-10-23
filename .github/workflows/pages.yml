@@ -59,6 +59,8 @@ jobs:
         run: python tests/access_smoke.py
       - name: Verify per-card bass staves and directed bass motion
         run: python tests/bass_smoke.py
+      - name: Verify independent rhythmic bass voices, rests and chromatic approaches
+        run: python tests/bass_line_smoke.py
       - name: Verify Bravura paths, pitch identity, accidentals and engraver geometry
         run: python tests/vexflow_smoke.py
       - name: Verify connected right-hand voicings and academic key labels
