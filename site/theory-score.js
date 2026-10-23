@@ -71,7 +71,7 @@ function baseSvg(root, width, height, title) {
   return {ctx, svg};
 }
 
-function drawSystem(ctx, svg, system, y, width, compact, mode, offsetX = 0) {
+function drawSystem(ctx, svg, system, y, width, compact, mode, offsetX = 0, showNarrowHeading = false) {
   const n = system.upper.length;
   if (!n || n > 8 || system.functions.length !== n ||
       (mode === 'grand' && system.bass.length !== n)) {
@@ -102,8 +102,10 @@ function drawSystem(ctx, svg, system, y, width, compact, mode, offsetX = 0) {
       size: compact ? 12.8 : 17.5, bold: true, serif: true,
       color: system.functionColor?.[index] || COLORS.ink,
     }));
-  if (system.heading && !compact) label(svg, offsetX + 43, y + 23, system.heading,
-    {anchor: 'start', size: 15.5, bold: true, color: COLORS.muted});
+  if (system.heading && (!compact || showNarrowHeading)) {
+    label(svg, offsetX + (compact ? 13 : 43), y + (compact ? 18 : 23), system.heading,
+      {anchor: 'start', size: compact ? 12.4 : 15.5, bold: true, color: COLORS.muted});
+  }
 
   if (mode === 'grand' && system.pedal && system.bass.every(pitch => pitch === system.bass[0])) {
     for (let i = 1; i < n; i++) {
@@ -115,23 +117,51 @@ function drawSystem(ctx, svg, system, y, width, compact, mode, offsetX = 0) {
   }
 }
 
-/** A compact preview uses a purpose-written excerpt, never shrinks a full multi-system score. */
-export function drawContextualScore(root, spec, {compact = false} = {}) {
-  const systems = compact ? (spec.mini || [spec.systems[0]]) : spec.systems;
+/** Split long progressions into successive readable systems on narrow screens. */
+function wrapSystems(systems, maxStages) {
+  return systems.flatMap(system => {
+    const count = system.upper.length;
+    if (count <= maxStages) return [system];
+    const lines = Math.ceil(count / maxStages);
+    const baseSize = Math.floor(count / lines);
+    const longerLines = count % lines;
+    const results = [];
+    let start = 0;
+    for (let line = 0; line < lines; line++) {
+      const end = start + baseSize + Number(line < longerLines);
+      const chunk = {...system, heading:line === 0 ? system.heading : 'Продолжение',
+        functions:system.functions.slice(start,end), upper:system.upper.slice(start,end),
+        bass:system.bass?.slice(start,end), highlight:system.highlight?.slice(start,end),
+        functionColor:system.functionColor?.slice(start,end)};
+      results.push(chunk);
+      start = end;
+    }
+    return results;
+  });
+}
+
+/** Compact previews and mobile layouts are re-engraved, never scaled-down copies. */
+export function drawContextualScore(root, spec, {compact = false, layout = 'desktop'} = {}) {
+  const phone = layout === 'phone' && !compact;
+  const tablet = layout === 'tablet' && !compact;
+  const narrow = compact || phone;
+  const rawSystems = compact ? (spec.mini || [spec.systems[0]]) : spec.systems;
+  const systems = phone ? wrapSystems(rawSystems, 3) : tablet ? wrapSystems(rawSystems, 4) : rawSystems;
   const mode = compact ? (spec.miniMode || spec.mode || 'treble') : (spec.mode || 'grand');
-  if (!Array.isArray(systems) || !systems.length || systems.length > 5) {
+  if (!Array.isArray(systems) || !systems.length || systems.length > 14) {
     throw new Error('Нет нотного материала');
   }
-  const columns = compact ? 1 : (spec.columns === 2 ? 2 : 1);
+  const columns = compact || phone || tablet ? 1 : (spec.columns === 2 ? 2 : 1);
   const maxStageCount = Math.max(...systems.map(system => system.upper.length));
-  const width = compact ? 330 : columns === 2 ? 918 : Math.min(918, Math.max(480, maxStageCount * 118 + 210));
+  const width = compact ? 330 : phone ? 350 : tablet ? 600 : columns === 2 ? 918 :
+    Math.min(918, Math.max(480, maxStageCount * 118 + 210));
   const columnWidth = columns === 2 ? 452 : width;
-  const gap = mode === 'treble' ? (compact ? 171 : 187) : (compact ? 265 : 303);
+  const gap = mode === 'treble' ? (narrow ? 171 : 187) : (narrow ? 265 : 303);
   const height = Math.ceil(systems.length / columns) * gap + (compact ? 14 : 18);
   const {ctx, svg} = baseSvg(root, width, height, spec.title || 'Нотная иллюстрация');
   systems.forEach((system, index) => {
     drawSystem(ctx, svg, system, (compact ? 10 : 14) + Math.floor(index / columns) * gap,
-      columnWidth, compact, mode, (index % columns) * 466);
+      columnWidth, narrow, mode, (index % columns) * 466, phone);
   });
   return svg;
 }

@@ -23,12 +23,14 @@
 .lesson-visual--full {
   max-width: 760px; margin: 19px 0 25px; padding: 15px 18px 13px;
   background: #f7f2e9; border: 1px solid #e7d9c6;
-  border-radius: 11px; overflow-x: auto; box-shadow: 0 2px 9px #53402707;
+  border-radius: 11px; box-shadow: 0 2px 9px #53402707;
 }
-.lesson-visual--full svg { min-width: 460px; }
+.lesson-visual--full svg { max-width: 100%; min-width: 0; }
 .lesson-visual--score.lesson-visual--full { max-width: 840px; }
-.lesson-visual--score.lesson-visual--full svg { min-width: 580px; }
+.lesson-visual--score.lesson-visual--full svg { max-width: 100%; min-width: 0; }
 .lesson-visual--score.lesson-visual--mini { padding: 5px 4px 2px; }
+.lesson-visual--full .vis-layout-tablet,
+.lesson-visual--full .vis-layout-phone { display: none; }
 .lesson-visual-title { font-size: 13px; font-weight: 650; color: #624626; margin: 0 0 4px; }
 .lesson-visual figcaption { font-size: 12px; color: #746856; line-height: 1.55; margin: 5px 0 0; }
 .vis-block { fill: #fffdf9; stroke: #d8c7ab; stroke-width: 1.7; }
@@ -65,6 +67,14 @@
 .theory-voice-arrow { pointer-events: none; }
 @media (max-width: 600px) {
   .lesson-visual--full { margin-inline: -3px; padding: 12px 11px; }
-  .lesson-visual--full svg { min-width: 450px; }
+}
+@media (max-width: 1050px) {
+  .lesson-visual--full.lesson-visual--engraved .vis-layout-desktop { display: none; }
+  .lesson-visual--full.lesson-visual--engraved .vis-layout-tablet { display: block; }
+}
+@media (max-width: 650px) {
+  .lesson-visual--full.lesson-visual--engraved .vis-layout-tablet { display: none; }
+  .lesson-visual--full .vis-layout-desktop { display: none; }
+  .lesson-visual--full .vis-layout-phone { display: block; }
 }
 @media print { .lesson-visual--mini { break-inside: avoid; } }

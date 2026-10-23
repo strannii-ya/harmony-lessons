@@ -37,6 +37,20 @@ test('each supported illustration works on a lesson card and inside theory', () 
   }
 });
 
+test('full-score illustrations have responsive phone and tablet engravings', () => {
+  const score=visualHTML(DEMOS.find(spec=>spec.kind==='score'));
+  for (const layout of ['desktop','tablet','phone']) {
+    assert.match(score,new RegExp(`data-layout="${layout}"`));
+    assert.match(score,new RegExp(`vis-layout-${layout}`));
+  }
+  assert.equal((score.match(/data-theory-engraving=/g)||[]).length,3);
+  const mini=visualHTML(DEMOS.find(spec=>spec.kind==='score'),{compact:true});
+  assert.equal((mini.match(/data-theory-engraving=/g)||[]).length,1);
+  const plan=visualHTML(DEMOS.find(spec=>spec.kind==='layers'));
+  assert.match(plan,/<svg class="vis-layout-desktop"/);
+  assert.match(plan,/<svg class="vis-layout-phone"/);
+});
+
 test('lesson data stays text and cannot inject markup or attributes', () => {
   const markup = visualHTML({kind: 'flow', title: '\"><script>alert(1)</script>',
     caption: '<img src=x onerror=alert(1)>', nodes: [{label: '</text><a href="evil">X</a>'}]});

@@ -143,9 +143,11 @@ export function visualHTML(spec, {compact = false} = {}) {
   if (spec.kind === 'score' && !scoreType) return '';
   if (scoreType) {
     const tag = compact ? 'span' : 'figure';
+    const payload = escapeHTML(JSON.stringify(spec));
+    const target = layout => `<span class="vis-engraving${!compact ? ` vis-layout-${layout}` : ''}" data-theory-engraving="${payload}" data-compact="${compact}" data-layout="${layout}"><span class="vis-engraving-wait">Нотная иллюстрация</span></span>`;
     return `<${tag} class="lesson-visual ${compact ? 'lesson-visual--mini' : 'lesson-visual--full'} lesson-visual--${spec.kind} lesson-visual--engraved">` +
       (!compact && spec.title ? `<div class="lesson-visual-title">${escapeHTML(spec.title)}</div>` : '') +
-      `<span class="vis-engraving" data-theory-engraving="${escapeHTML(JSON.stringify(spec))}" data-compact="${compact}"><span class="vis-engraving-wait">Нотная иллюстрация</span></span>` +
+      (compact ? target('desktop') : ['desktop','tablet','phone'].map(target).join('')) +
       (!compact && spec.caption ? `<figcaption>${escapeHTML(spec.caption)}</figcaption>` : '') + `</${tag}>`;
   }
   const width = compact ? 296 : 668;
@@ -156,6 +158,7 @@ export function visualHTML(spec, {compact = false} = {}) {
   const tag = compact ? 'span' : 'figure';
   return `<${tag} class="lesson-visual ${compact ? 'lesson-visual--mini' : 'lesson-visual--full'} lesson-visual--${spec.kind}">` +
     (!compact && spec.title ? `<div class="lesson-visual-title">${escapeHTML(spec.title)}</div>` : '') +
-    `<svg viewBox="0 0 ${width} ${compact ? 104 : 202}" role="img" aria-label="${escapeHTML(label || 'Музыкальная схема')}">${drawing}</svg>` +
+    `<svg class="vis-layout-desktop" viewBox="0 0 ${width} ${compact ? 104 : 202}" role="img" aria-label="${escapeHTML(label || 'Музыкальная схема')}">${drawing}</svg>` +
+    (!compact ? `<svg class="vis-layout-phone" viewBox="0 0 296 104" role="img" aria-label="${escapeHTML(label || 'Музыкальная схема')}">${DRAW[spec.kind](spec,296,true)}</svg>` : '') +
     (!compact && spec.caption ? `<figcaption>${escapeHTML(spec.caption)}</figcaption>` : '') + `</${tag}>`;
 }

@@ -375,9 +375,9 @@ function enharmonic(root, spec, compact) {
   }
 }
 
-export function drawTheoryEngraving(root, spec, {compact = false} = {}) {
+export function drawTheoryEngraving(root, spec, {compact = false, layout = 'desktop'} = {}) {
   switch (engravingKind(spec)) {
-    case 'score': return drawContextualScore(root, spec, {compact});
+    case 'score': return drawContextualScore(root, spec, {compact, layout});
     case 'motion': return lineMotion(root, spec, compact);
     case 'chords': return chordCompare(root, spec.panels, spec, compact);
     case 'equality': return equalityCompare(root, spec, compact);
@@ -397,7 +397,11 @@ export function mountTheoryVisuals(root = document) {
   for (const target of root.querySelectorAll('[data-theory-engraving]')) {
     try {
       const spec = JSON.parse(target.dataset.theoryEngraving);
-      drawTheoryEngraving(target, spec, {compact: target.dataset.compact === 'true'});
+      const layout = target.dataset.layout || 'desktop';
+      drawTheoryEngraving(target, spec, {
+        compact: target.dataset.compact === 'true' || (layout === 'phone' && spec.kind !== 'score'),
+        layout,
+      });
     } catch (error) {
       // Do not make the lesson itself unavailable if a drawing fails.
       target.textContent = 'Иллюстрация временно недоступна';
