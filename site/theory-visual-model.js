@@ -31,6 +31,12 @@ export function parseAscendingChord(value) {
 
 export function engravingKind(spec) {
   if (!spec || typeof spec !== 'object') return null;
+  if (spec.kind === 'score' && Array.isArray(spec.systems) && spec.systems.length &&
+      spec.systems.every(system => Array.isArray(system.upper) && system.upper.length > 0 &&
+        system.upper.every(chord => Array.isArray(chord) && chord.length > 0 && chord.every(pitch => parsePitch(pitch))) &&
+        Array.isArray(system.functions) && system.functions.length === system.upper.length &&
+        (spec.mode === 'treble' || (Array.isArray(system.bass) &&
+          system.bass.length === system.upper.length && system.bass.every(pitch => parsePitch(pitch)))))) return 'score';
   if (spec.kind === 'motion') {
     const lines = Array.isArray(spec.lines) && spec.lines.length ? spec.lines : [{notes:spec.notes}];
     const stages = spec.labels?.length || lines[0].notes?.length || 0;

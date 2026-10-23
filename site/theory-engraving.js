@@ -3,6 +3,7 @@
  */
 import { VF } from './vexflow.js';
 import { parsePitch, parseAscendingChord, engravingKind } from './theory-visual-model.js';
+import { drawContextualScore } from './theory-score.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const INK = '#342d25';
@@ -376,6 +377,7 @@ function enharmonic(root, spec, compact) {
 
 export function drawTheoryEngraving(root, spec, {compact = false} = {}) {
   switch (engravingKind(spec)) {
+    case 'score': return drawContextualScore(root, spec, {compact});
     case 'motion': return lineMotion(root, spec, compact);
     case 'chords': return chordCompare(root, spec.panels, spec, compact);
     case 'equality': return equalityCompare(root, spec, compact);

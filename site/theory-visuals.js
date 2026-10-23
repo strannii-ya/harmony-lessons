@@ -4,7 +4,7 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[char]));
 
-const ALLOWED = new Set(['flow', 'motion', 'compare', 'layers', 'branch', 'pivot', 'enharmonic', 'sequence', 'form']);
+const ALLOWED = new Set(['flow', 'motion', 'compare', 'layers', 'branch', 'pivot', 'enharmonic', 'sequence', 'form', 'score']);
 // Never compress the width of characters: optical distortion made accidental
 // signs and chord labels particularly hard to read in course cards.
 const t = (x, y, value, cls = 'vis-label', anchor = 'middle') =>
@@ -140,6 +140,7 @@ const DRAW = {flow, compare, layers, branch, pivot, enharmonic, sequence, form: 
 export function visualHTML(spec, {compact = false} = {}) {
   if (!spec || !ALLOWED.has(spec.kind)) return '';
   const scoreType = engravingKind(spec);
+  if (spec.kind === 'score' && !scoreType) return '';
   if (scoreType) {
     const tag = compact ? 'span' : 'figure';
     return `<${tag} class="lesson-visual ${compact ? 'lesson-visual--mini' : 'lesson-visual--full'} lesson-visual--${spec.kind} lesson-visual--engraved">` +

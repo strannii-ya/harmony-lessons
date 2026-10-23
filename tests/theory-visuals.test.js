@@ -12,7 +12,11 @@ const DEMOS = [
   { kind: 'branch', start: ['I'], paths: [{label: 'A'}, {label: 'B'}] },
   { kind: 'pivot', chord: 'A–C–E', equivalence: 'vi = ii' },
   { kind: 'enharmonic', sameKey: 'A♭ = G♯', first: {label: 'C', notes: 'B–D–F–A♭'}, second: {label: 'a', notes: 'B–D–F–G♯'} },
-  { kind: 'sequence', blocks: [{label: 'C', pattern: 'vi–ii–V–I'}, {label: 'D', pattern: 'vi–ii–V–I'}] }
+  { kind: 'sequence', blocks: [{label: 'C', pattern: 'vi–ii–V–I'}, {label: 'D', pattern: 'vi–ii–V–I'}] },
+  {kind: 'score', title: 'Согласованный нотный пример', systems: [{
+    functions:['I','V','I'], upper:[['C4','E4','G4'],['B3','D4','G4'],['C4','E4','G4']],
+    bass:['C3','G2','C3'],
+  }], miniMode:'treble'}
 ];
 
 test('each supported illustration works on a lesson card and inside theory', () => {
@@ -104,4 +108,5 @@ test('unknown or incomplete diagrams are omitted safely', () => {
   assert.equal(visualHTML({kind: 'javascript'}), '');
   assert.equal(visualHTML({kind: 'motion', labels: ['I']}), '');
   assert.equal(visualHTML({kind: 'enharmonic', first: null, second: null}), '');
+  assert.equal(visualHTML({kind: 'score', systems: [{functions:['I'], upper:[['not-a-note']], bass:['C3']}]}), '');
 });

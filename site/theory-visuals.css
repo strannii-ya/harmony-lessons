@@ -26,6 +26,9 @@
   border-radius: 11px; overflow-x: auto; box-shadow: 0 2px 9px #53402707;
 }
 .lesson-visual--full svg { min-width: 460px; }
+.lesson-visual--score.lesson-visual--full { max-width: 840px; }
+.lesson-visual--score.lesson-visual--full svg { min-width: 580px; }
+.lesson-visual--score.lesson-visual--mini { padding: 5px 4px 2px; }
 .lesson-visual-title { font-size: 13px; font-weight: 650; color: #624626; margin: 0 0 4px; }
 .lesson-visual figcaption { font-size: 12px; color: #746856; line-height: 1.55; margin: 5px 0 0; }
 .vis-block { fill: #fffdf9; stroke: #d8c7ab; stroke-width: 1.7; }
