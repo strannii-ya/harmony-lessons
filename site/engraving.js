@@ -26,7 +26,7 @@ export function makeVoice(events,bar,clef){
  const notes=events.map(event=>{
   const duration=DURATIONS.get(event.duration);
   if(!duration||(!event.rest&&!event.notes?.length))throw new Error('Неподдерживаемая длительность или пустой аккорд');
-  const note=new VF.StaveNote({keys:event.rest?['d/3']:event.notes.map(vexKey),duration:duration+(event.rest?'r':''),clef,auto_stem:true});
+  const note=new VF.StaveNote({keys:event.rest?['d/3']:event.notes.map(vexKey),duration:duration+(event.rest?'r':''),clef,auto_stem:true,dots:(event.duration===3||event.duration===1.5)?1:0});
   if(event.duration===3||event.duration===1.5)VF.Dot.buildAndAttach([note],{all:true});
   // Validity is per written pitch and octave and resets at each bar line.
   // VexFlow determines the signs' engraved form, columns and optical spacing.
