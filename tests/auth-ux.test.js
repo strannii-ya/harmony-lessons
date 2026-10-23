@@ -76,17 +76,33 @@ test('ordinary logout uses local scope only, leaving other device sessions alone
  globalThis.fetch=async(url,o)=>{path=url;assert.equal(o.method,'POST');return new Response(null,{status:204});};
  await api.signOut();assert.equal(path,CONFIG.supabaseUrl+'/auth/v1/logout?scope=local');assert.equal(api.saved(),null);
 });
-test('temporary callback failure can retry privately after URL cleanup; PKCE is still required',async()=>{
+for (const provider of ['google','yandex']) {
+ test(`${provider} callback never replays a one-time PKCE code after a lost token response`,async()=>{
+  const api=new LibraryAPI(CONFIG);api.setRemember(true);
+  sessionStorage.setItem(api.pkceKey,JSON.stringify({verifier:'a'.repeat(43),redirectTo:BASE,startedAt:Date.now(),provider}));
+  at(BASE+'?code=short-lived-code');let exchanges=0;
+  globalThis.fetch=async(url,o)=>{
+   if(url.includes('grant_type=pkce')){exchanges++;assert.equal(JSON.parse(o.body).code_verifier,'a'.repeat(43));throw new Error('Connection closed after server issued tokens');}
+   throw new Error('Unexpected request');
+  };
+  await assert.rejects(api.restore(),e=>!isTransientAuthError(e)&&e.message.includes('одноразовый')&&e.message.includes(provider==='google'?'Google':'Яндекс'));
+  assert.equal(location.search,'');assert.equal(sessionStorage.getItem(api.pkceKey),null);
+  assert.equal(localStorage.getItem(api.pkceKey),null);
+  assert.equal(await api.restore(),null);assert.equal(exchanges,1);
+ });
+}
+test('after successful PKCE exchange a temporary identity failure retries using the saved session, not the code',async()=>{
  const api=new LibraryAPI(CONFIG);api.setRemember(true);
- sessionStorage.setItem(api.pkceKey,JSON.stringify({verifier:'a'.repeat(43),redirectTo:BASE,startedAt:Date.now(),provider:'yandex'}));
- at(BASE+'?code=short-lived-code');let fail=true;
- globalThis.fetch=async(url,o)=>{
-  if(url.includes('grant_type=pkce')){assert.equal(JSON.parse(o.body).code_verifier,'a'.repeat(43));return fail?json({},503):json(pair('new'));}
-  if(url.includes('/user'))return json({id:'u',email_confirmed_at:'2026-01-01'});
+ sessionStorage.setItem(api.pkceKey,JSON.stringify({verifier:'b'.repeat(43),redirectTo:BASE,startedAt:Date.now(),provider:'google'}));
+ at(BASE+'?code=one-time-code');let exchanges=0,users=0;
+ globalThis.fetch=async url=>{
+  if(url.includes('grant_type=pkce')){exchanges++;return json(pair('new'));}
+  if(url.includes('/user')){users++;if(users===1)throw new Error('offline');return json({id:'u',email_confirmed_at:'2026-01-01'});}
   return json([{user_id:'u',active:true,is_owner:false}]);
  };
- await assert.rejects(api.restore(),e=>e.status===503);assert.equal(location.search,'');assert(sessionStorage.getItem(api.pkceKey));assert.equal(localStorage.getItem(api.pkceKey),null);
- fail=false;assert.equal((await api.restore()).id,'u');assert.equal(sessionStorage.getItem(api.pkceKey),null);
+ await assert.rejects(api.restore(),isTransientAuthError);
+ assert.equal(location.search,'');assert.equal(sessionStorage.getItem(api.pkceKey),null);
+ assert.equal((await api.restore()).id,'u');assert.equal(exchanges,1);assert.equal(users,2);
 });
 test('initial loading state and shared disclosure size exist without waiting for JavaScript',()=>{
  const html=readFileSync('site/index.html','utf8'),css=readFileSync('site/paper.css','utf8');

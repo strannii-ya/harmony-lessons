@@ -167,16 +167,26 @@ export class AuthSession {
       cleanCallback();remove(storage('sessionStorage'),this.pkceKey);throw new Error(authFailure(error,provider));
     }
     let pending; try { pending=JSON.parse(get(storage('sessionStorage'),this.pkceKey)||'null'); } catch { pending=null; }
-    const code=query.get('code')||pending?.authCode;
+    // OAuth authorization codes are single-use. Never replay one after a failed
+    // response: the server might have issued tokens that the browser never saw.
+    const code=query.get('code');
     if (code) {
       cleanCallback();
       if (!pending || !/^[A-Za-z0-9_-]{43}$/.test(pending.verifier) || pending.redirectTo!==location.origin+location.pathname || Date.now()-pending.startedAt>600000 || !Number.isFinite(pending.startedAt) || pending.startedAt>Date.now() || typeof code!=='string' || code.length>4096 || (pending.provider!==undefined&&!Object.hasOwn(PROVIDERS,pending.provider))) {
         remove(storage('sessionStorage'),this.pkceKey);
         throw new Error('Вход начат в другой вкладке или истёк. Нажмите нужную кнопку входа здесь заново.');
       }
-      set(storage('sessionStorage'),this.pkceKey,JSON.stringify({...pending,authCode:code}));
-      try { this.store(await this.request('/auth/v1/token?grant_type=pkce',{method:'POST',body:{auth_code:code,code_verifier:pending.verifier}}));remove(storage('sessionStorage'),this.pkceKey); }
-      catch(e) { if(isTransientAuthError(e))throw e;this.clear();throw new Error(authFailure(e.code,pending.provider||'google')); }
+      // Consume the local verifier before the request, too. A retry must start
+      // a fresh provider authorization rather than reuse a possibly spent code.
+      remove(storage('sessionStorage'),this.pkceKey);
+      try { this.store(await this.request('/auth/v1/token?grant_type=pkce',{method:'POST',body:{auth_code:code,code_verifier:pending.verifier}})); }
+      catch(e) {
+        if(isTransientAuthError(e)) {
+          const label=providerInfo(pending.provider||'google').label;
+          throw new Error(`Вход через ${label} прервался при подтверждении. Начните вход через ${label} заново: код подтверждения одноразовый.`);
+        }
+        this.clear();throw new Error(authFailure(e.code,pending.provider||'google'));
+      }
     } else if (hash.has('access_token')) {
       // Compatibility for the existing email-link flow; it still needs server-side identity and membership checks.
       cleanCallback();
