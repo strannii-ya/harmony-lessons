@@ -1,0 +1,11 @@
+Salamander Grand Piano V3 — Yamaha C5 recordings by Alexander Holm.
+Licensed under Creative Commons Attribution 3.0 Unported (CC BY 3.0).
+
+Original source: https://github.com/sfzinstruments/SalamanderGrandPiano
+License: https://creativecommons.org/licenses/by/3.0/
+MP3 source: https://github.com/darosh/samples-piano-mp3
+
+This compact bank contains 26 recorded pitches in two velocity layers
+(v8 and v15). The MP3 files were trimmed to seven seconds without re-encoding
+and filenames were normalized. Other notes are pitch-shifted at playback;
+the player applies gain envelopes and gentle compression.

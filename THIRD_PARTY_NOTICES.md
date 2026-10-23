@@ -5,6 +5,17 @@ The application uses VexFlow 4.2.5 (MIT), specifically its Bravura vector-outlin
 VexFlow: https://github.com/0xfe/vexflow
 Bravura glyph designs: Copyright Steinberg Media Technologies GmbH, SIL Open Font License 1.1. Source and license: https://github.com/steinbergmedia/bravura
 
+# Salamander Grand Piano V3 recordings
+
+Piano recordings: **Alexander Holm — Salamander Grand Piano V3**, a Yamaha C5 concert grand. Licensed under **Creative Commons Attribution 3.0 Unported (CC BY 3.0)**.
+
+- Original recordings and author: https://github.com/sfzinstruments/SalamanderGrandPiano
+- Original distribution: https://archive.org/details/SalamanderGrandPianoV3
+- License text: https://creativecommons.org/licenses/by/3.0/
+- MP3 distribution: `@audio-samples/piano-mp3-velocity8@1.0.5` and `@audio-samples/piano-mp3-velocity15@1.0.5` from https://github.com/darosh/samples-piano-mp3
+
+The site bundles 26 sampled pitches in each of two velocity layers. We preserved the original MP3 encoding, shortened each file to the first seven seconds, renamed sharps as `Ds`/`Fs` in filenames, and use playback-rate interpolation, gain envelopes and light compression to play other pitches. The recordings retain their CC BY 3.0 license; no endorsement by their author is implied.
+
 # Legacy engraved clef illustrations
 
 The two SVG illustrations in site/notation-glyphs.js were rendered from Noto Music 2.000, Copyright 2018 Google Inc. All Rights Reserved, SIL Open Font License 1.1.
