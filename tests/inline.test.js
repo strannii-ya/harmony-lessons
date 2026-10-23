@@ -35,7 +35,7 @@ test('audio resume cannot revive playback after immediate stop',async()=>{
  try{
   const p=new Player(),pending=p.play({events:[],bars:[],totalBeats:1});
   p.stop();resume();await pending;
-  assert.equal(p.running,false);assert.equal(p.active.length,0);
+  assert.equal(p.running,false);assert.equal(p.active.size,0);
  }finally{globalThis.AudioContext=old;}
 });
 test('transport failures reset the card and propagate a readable error',async()=>{
