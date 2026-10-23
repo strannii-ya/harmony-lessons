@@ -39,9 +39,8 @@ class Provider(BaseHTTPRequestHandler):
    query=parse_qs(urlparse(self.path).query);state['authorize']=query
    if 'text/html' not in self.headers.get('Accept',''):
     state['probes']+=1
-    if self.headers.get('Authorization'):state['failures'].append('Unexpected authorization header on probe')
-    if not state['enabled']:return self.reply({'error_code':'validation_failed','msg':'Provider disabled'},400)
-    self.headers_for(302);self.send_header('Location','https://oauth.yandex.ru/authorize?state=synthetic-only');self.send_header('Content-Length','0');self.end_headers();return
+    state['failures'].append('Unexpected preflight OAuth request')
+    return self.reply({'error':'OAuth must start with one navigation'},500)
    state['navigations']+=1
    body=b'<p>Synthetic provider page. No real OAuth request.</p>';self.headers_for(200,'text/html');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   if path.endswith('/user'):return self.reply({'id':USER,'email':'friend@yandex.ru','email_confirmed_at':'2026-01-01'})
@@ -66,7 +65,7 @@ async def scenario(engine,width,height):
  options={'executable_path':os.environ['CHROMIUM_EXECUTABLE'],'args':['--no-sandbox']} if engine.name=='chromium' and os.environ.get('CHROMIUM_EXECUTABLE') else {}
  browser=await engine.launch(**options)
  context=await browser.new_context(viewport={'width':width,'height':height},has_touch=width<1000)
- state={'enabled':False,'member':True,'admin':False,'probes':0,'navigations':0,'mail':0,'external':0,'authorize':None,'exchanges':0,'failures':[]};provider.state=state
+ state={'member':True,'admin':False,'probes':0,'navigations':0,'mail':0,'external':0,'authorize':None,'exchanges':0,'failures':[]};provider.state=state
  # Local app and Auth traffic are NOT intercepted. This avoids synthetic
  # address-space classifications and tests real cross-origin CORS/302 behaviour.
  async def forbidden(route):state['external']+=1;await route.abort()
@@ -83,15 +82,13 @@ async def scenario(engine,width,height):
  await expect(page.locator('#google-signin')).to_be_enabled();await expect(page.locator('#yandex-signin')).to_be_enabled()
  assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
  await page.screenshot(path=str(OUT/f'yandex-login-{engine.name}-{width}x{height}.png'),full_page=True)
- await page.locator('#yandex-signin').click();await expect(page.locator('#google-status')).to_contain_text('ещё не настроен')
- await expect(page.locator('#google-signin')).to_be_enabled()
- assert page.url==BASE and state['navigations']==0 and state['probes']==1
  await page.locator('#google-signin').click();await wait_authorize()
  assert state['authorize']['provider']==['google'] and state['authorize']['scopes']==['openid email profile']
- await page.goto(BASE);state['enabled']=True
+ await page.goto(BASE)
  await page.locator('#remember').check();await page.locator('#yandex-signin').click();await wait_authorize()
  assert state['authorize']['provider']==['custom:yandex'] and state['authorize']['scopes']==['login:email']
  assert state['authorize']['code_challenge_method']==['s256'] and state['authorize']['redirect_to']==[BASE] and state['external']==0
+ assert state['navigations']==2 and state['probes']==0,'each provider launch must make exactly one navigation'
  await page.goto(BASE+'?code=synthetic-code');await expect(page.locator('#shell')).to_be_visible();assert 'code=' not in page.url
  assert await page.locator('[data-view="access"]').is_hidden()
  stored=await page.evaluate('JSON.stringify(localStorage)');assert 'synthetic-refresh' in stored and 'UPSTREAM-DO-NOT-STORE' not in stored

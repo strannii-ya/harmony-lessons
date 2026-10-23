@@ -150,20 +150,10 @@ export class AuthSession {
     url.search=new URLSearchParams({provider:spec.id,redirect_to:redirectTo,
       code_challenge:challenge,code_challenge_method:'s256',scopes:spec.scopes,
       ...(provider==='google'?{prompt:'select_account'}:{force_confirm:'yes'})}).toString();
-    if (provider==='yandex') {
-      // /settings lists built-in providers only. Probe our Auth server without
-      // following its redirect. No provider token, email or session is sent.
-      // An enabled provider gives an opaque redirect; a missing one gives JSON.
-      let response;
-      try { response=await fetch(url.href,{redirect:'manual',cache:'no-store',credentials:'omit',
-        headers:{apikey:this.key},signal:AbortSignal.timeout(15000)}); }
-      catch { throw new Error('Не удалось проверить Яндекс-вход. Проверьте интернет и повторите попытку.'); }
-      if(response.type!=='opaqueredirect') {
-        if ([400,404].includes(response.status)) throw new Error(YANDEX_SETUP_MESSAGE);
-        if (response.status===429) throw new Error('Слишком много попыток входа. Повторите немного позже.');
-        throw new Error('Сервис входа временно недоступен. Попробуйте ещё раз позже.');
-      }
-    }
+    // Start custom OAuth with a single top-level navigation. A fetch-based
+    // /authorize "availability probe" starts a second OAuth transaction and
+    // is not reliable across browsers with different redirect/CORS behavior.
+    // Provider errors returned to our callback are handled by restore().
     this.setRemember(remember);
     set(storage('sessionStorage'),this.pkceKey,JSON.stringify({verifier,redirectTo,startedAt:Date.now(),provider}));
     return url.href;

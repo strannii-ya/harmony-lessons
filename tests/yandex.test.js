@@ -13,21 +13,24 @@ beforeEach(()=>{globalThis.sessionStorage=new MemoryStorage();globalThis.localSt
 afterEach(()=>{globalThis.fetch=savedFetch;});
 class Fixture extends AuthSession {constructor(){super(CONFIG);this.calls=[];this.allowed=true;}async request(path,options){this.calls.push({path,options});if(path==='/auth/v1/settings')return {external:{google:true}};if(path.includes('grant_type=pkce'))return {access_token:'session-not-yandex',refresh_token:'refresh-not-yandex',expires_in:3600,provider_token:TOKEN};throw Error('unexpected request');}async identity(){if(!this.allowed)throw Object.assign(new Error('Не имеет доступа'),{status:403});return {id:'verified-member'};} }
 test('Yandex uses fixed custom provider, email-only scope and a fresh path-bound PKCE verifier',async()=>{
- let probe;globalThis.fetch=async(url,options)=>{probe={url,options};return {type:'opaqueredirect'};};const api=new Fixture();
+ let requests=0;globalThis.fetch=async()=>{requests++;throw Error('No pre-navigation OAuth fetch allowed');};const api=new Fixture();
  loc(BASE+'?next=https://evil.test/&provider=evil#lesson-4');const url=new URL(await api.yandexUrl({remember:true})),pending=JSON.parse(sessionStorage.getItem(api.pkceKey));
  assert.equal(url.origin,CONFIG.supabaseUrl);assert.equal(url.searchParams.get('provider'),'custom:yandex');assert.equal(url.searchParams.get('scopes'),'login:email');assert.equal(url.searchParams.get('redirect_to'),BASE);assert.equal(url.searchParams.get('code_challenge_method'),'s256');
  assert.equal(url.searchParams.get('code_challenge'),createHash('sha256').update(pending.verifier).digest('base64url'));assert.equal(pending.provider,'yandex');assert.equal(pending.redirectTo,BASE);
- assert.equal(probe.options.redirect,'manual');assert.equal(probe.options.credentials,'omit');assert.deepEqual(Object.keys(probe.options.headers),['apikey']);assert.ok(!url.href.includes(TOKEN));assert.ok(!url.href.includes('code_verifier'));
- assert.equal(api.calls.length,0);
+ assert.ok(!url.href.includes(TOKEN));assert.ok(!url.href.includes('code_verifier'));
+ assert.equal(requests,0,'the actual browser navigation must be the only authorize request');assert.equal(api.calls.length,0);
 });
-test('Missing Yandex provider keeps the page, saved session and existing pending Google login untouched',async()=>{
- const api=new Fixture();await api.googleUrl();const pending=sessionStorage.getItem(api.pkceKey);api.store({access_token:'existing',refresh_token:'existing-refresh'});
- const before=sessionStorage.getItem(api.sessionKey);globalThis.fetch=async()=>({status:400,type:'cors'});
- await assert.rejects(api.yandexUrl({remember:true}),e=>e.message===YANDEX_SETUP_MESSAGE);assert.equal(api.remembers,false);assert.equal(sessionStorage.getItem(api.sessionKey),before);assert.equal(sessionStorage.getItem(api.pkceKey),pending);
+test('Missing Yandex provider is explained after redirect to the auth callback',async()=>{
+ const api=new Fixture();await api.yandexUrl({remember:true});
+ loc(BASE+'?error=custom_provider_not_found&error_description=PRIVATE-TOKEN');
+ await assert.rejects(api.restore(),e=>e.message===YANDEX_SETUP_MESSAGE);
+ assert.equal(location.search,'');assert.equal(sessionStorage.getItem(api.pkceKey),null);
 });
-test('Rate limits, network failures and unexpected success responses fail without creating a Yandex login',async()=>{
- for(const reply of [{status:429,type:'cors'},{status:200,type:'cors'},{status:503,type:'cors'}]){globalThis.fetch=async()=>reply;const api=new Fixture();await assert.rejects(api.yandexUrl());assert.equal(sessionStorage.getItem(api.pkceKey),null);}
- globalThis.fetch=async()=>{throw Error(TOKEN);};await assert.rejects(new Fixture().yandexUrl(),e=>!e.message.includes(TOKEN));
+test('Yandex launch does not depend on a preliminary fetch or consume a callback code',async()=>{
+ globalThis.fetch=async()=>{throw Error('Offline fetch should not block OAuth navigation');};
+ const api=new Fixture();const url=await api.yandexUrl();
+ assert.equal(new URL(url).pathname,'/auth/v1/authorize');assert.ok(sessionStorage.getItem(api.pkceKey));
+ loc(BASE+'?code=one-use-code');assert.equal((await new Fixture().restore()).id,'verified-member');
 });
 test('Yandex callback keeps membership checks, strips provider tokens and restores remembered login',async()=>{
  globalThis.fetch=async()=>({type:'opaqueredirect'});const api=new Fixture();await api.yandexUrl({remember:true});loc(BASE+'?code=one-use-code');assert.equal((await api.restore()).id,'verified-member');assert.equal(location.search,'');assert.equal(sessionStorage.getItem(api.pkceKey),null);assert.ok(!localStorage.getItem(api.sessionKey).includes(TOKEN));
