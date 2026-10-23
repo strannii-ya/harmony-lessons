@@ -13,8 +13,8 @@ EXAMPLES=[
  {'id':'card-pedal','title':'Созвучия над органным пунктом','mode':'major','progression':[{'symbol':s,'bass':'5'} for s in ['I','IV','V7','I']]},
  {'id':'card-jazz','title':'Нонаккорды в джазовом обороте','mode':'major','genre':'jazz','progression':['ii9','V9','Imaj9','Imaj9']}
 ]
-for i,e in enumerate(EXAMPLES):e.update(position=i+1,lesson_id=None if e.get('genre') else 1,library_section='genres' if e.get('genre') else 'course',goal='Сравни движение голосов.',discuss='Послушай разрешение.',loop=False,theory={'sections':[{'title':'Гармонический оборот','paragraphs':['Сыграй в разных тональностях, сохраняя движение голосов.']}],'notation':{'show_bass':e['id']=='card-pedal'}})
-FIXTURE={'lessons':[{'id':1,'position':1,'chapter':1,'chapter_title':'Функциональная гармония','title':'Связь главных трезвучий','goal':'Сравнить функции.','preparation':['Повторить главные трезвучия.'],'topics':['Сопоставить расположения правой руки.'],'theory':{'sections':[{'title':'Гармонические функции','paragraphs':['Послушай тяготение доминанты к тонике.']}]}}], 'exercises':EXAMPLES,'progress':[],'favorites':[]}
+for i,e in enumerate(EXAMPLES):e.update(position=i+1,lesson_id=None if e.get('genre') else 1,library_section='genres' if e.get('genre') else 'course',goal='Сравните движение голосов.',discuss='Послушайте разрешение.',loop=False,theory={'sections':[{'title':'Гармонический оборот','paragraphs':['Сыграйте в разных тональностях, сохраняя движение голосов.']}],'notation':{'show_bass':e['id']=='card-pedal'}})
+FIXTURE={'lessons':[{'id':1,'position':1,'chapter':1,'chapter_title':'Функциональная гармония','title':'Связь главных трезвучий','goal':'Сравнить функции.','preparation':['Повторить главные трезвучия.'],'topics':['Сопоставить расположения правой руки.'],'theory':{'sections':[{'title':'Гармонические функции','paragraphs':['Послушайте тяготение доминанты к тонике.']}]}}], 'exercises':EXAMPLES,'progress':[],'favorites':[]}
 class Quiet(SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
 async def scenario(engine,w,h,base):
