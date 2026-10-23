@@ -14,6 +14,7 @@ import { getLibraryAPI } from './auth-client.js';
 import { isTransientAuthError } from './oauth-session.js';
 import { loading,ready,login,loadingError } from './auth-screen.js';
 import { visualHTML } from './theory-visuals.js';
+import { mountTheoryVisuals } from './theory-engraving.js';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const courseText=s=>esc(academicKeyNames(s));
 const state={data:null,user:null,view:'course',lesson:1,pattern:'chords',selected:null,settings:new Map(),search:'',filter:'all',collection:'all',genre:'all'};
@@ -54,6 +55,7 @@ function course(){
  let html=`<section class="page-heading"><h1>Курс гармонии</h1><p class="page-count">${complete} / ${state.data.lessons.length} пройдено · ${state.data.exercises.filter(e=>!isGenre(e)).length} упражнений</p></section><div class="resume-row"><span>Урок ${current.position}. ${courseText(current.title)}</span><button data-lesson="${esc(current.id)}">Продолжить →</button></div>`;
  const chapters=[...new Set(state.data.lessons.map(l=>l.chapter))];for(const c of chapters){const ls=state.data.lessons.filter(l=>l.chapter===c);html+=`<div class="section-heading"><h2>${chapterRoman(c)}. ${courseText(ls[0].chapter_title)}</h2><span>${ls.length}</span></div><div class="course-grid">${ls.map(l=>`<button class="course-card" data-lesson="${esc(l.id)}"><span class="card-num">${String(l.position).padStart(2,'0')}</span><h3>${courseText(l.title)}</h3>${visualHTML(l.theory?.visual,{compact:true})}${progressFor(l.id)?.completed?'<span class="status-pill">Пройдено</span>':''}</button>`).join('')}</div>`;}
  $('#content').innerHTML=html;
+ mountTheoryVisuals($('#content'));
 }
 function figureHTML(figure){
  if(!figure || !Array.isArray(figure.steps) || !figure.steps.length)return '';
@@ -79,6 +81,7 @@ function lesson(){
  const l=lessonBy(state.lesson);if(!l){navigate('course');return;}
  $('#breadcrumb').textContent=`Урок ${l.position}`;const progress=progressFor(l.id),prev=state.data.lessons.find(x=>x.position===l.position-1),next=state.data.lessons.find(x=>x.position===l.position+1);
  $('#content').innerHTML=`<section class="page-heading"><h1>${courseText(l.title)}</h1><div class="lesson-meta"><button id="complete" aria-pressed="${!!progress?.completed}">${progress?.completed?'✓ Пройдено':'Отметить пройденным'}</button></div></section><details class="prep"><summary>Подготовка и темы</summary><p class="lesson-goal">${courseText(l.goal)}</p><div class="prep-body"><div><h3>Дома</h3><ul>${(l.preparation||[]).map(t=>`<li>${courseText(t)}</li>`).join('')}</ul></div><div><h3>На уроке</h3><ul>${(l.topics||[]).map(t=>`<li>${courseText(t)}</li>`).join('')}</ul></div></div></details>${l.theory?.sections?.length?`<details class="lesson-theory"><summary>Теория</summary>${theoryHTML(l.theory)}</details>`:''}<div class="lesson-toolbar"><h2>Последовательности</h2></div>${exercisesFor(l.id).map(exerciseHTML).join('')}<div class="all-score-controls">${patternControl()}</div><section class="notes-editor"><label for="notes">Заметки</label><textarea id="notes" maxlength="20000">${esc(progress?.notes||'')}</textarea><button id="save-notes">Сохранить</button><span id="note-status" class="note-status" role="status"></span></section><div class="lesson-pagination">${prev?`<button data-lesson="${esc(prev.id)}">← Урок ${prev.position}</button>`:'<span></span>'}${next?`<button data-lesson="${esc(next.id)}">Урок ${next.position} →</button>`:''}</div>`;
+ mountTheoryVisuals($('#content'));
  mountScores();
 }
 function library(){

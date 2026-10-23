@@ -1,21 +1,14 @@
 /** Educational illustrations. Their lesson-specific data is loaded after authentication. */
-import { CLEF_PATHS } from './notation-glyphs.js';
+import { engravingKind } from './theory-visual-model.js';
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[char]));
 
 const ALLOWED = new Set(['flow', 'motion', 'compare', 'layers', 'branch', 'pivot', 'enharmonic', 'sequence', 'form']);
-const FONT_SIZES = {
-  'vis-main': 24, 'vis-main-small': 18, 'vis-heading': 17, 'vis-heading-small': 16,
-  'vis-tiny-heading': 14, 'vis-detail': 13, 'vis-detail-mini': 15, 'vis-chord': 22,
-  'vis-row': 13, 'vis-row-small': 13, 'vis-cell-text': 16, 'vis-cell-text-small': 14
-};
-const t = (x, y, value, cls = 'vis-label', anchor = 'middle', maxWidth = 0) => {
-  const text = String(value ?? '');
-  // A compact layout may need a restrained width adjustment; full labels stay in the data.
-  const fit = maxWidth > 0 && [...text].length * (FONT_SIZES[cls] || 16) * .56 > maxWidth;
-  return `<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}"${fit ? ` textLength="${maxWidth}" lengthAdjust="spacingAndGlyphs"` : ''}>${escapeHTML(text)}</text>`;
-};
+// Never compress the width of characters: optical distortion made accidental
+// signs and chord labels particularly hard to read in course cards.
+const t = (x, y, value, cls = 'vis-label', anchor = 'middle') =>
+  `<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}">${escapeHTML(value)}</text>`;
 const r = (x, y, width, height, cls = 'vis-block') =>
   `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="9" class="${cls}"/>`;
 const ln = (x1, y1, x2, y2, cls = 'vis-connector') =>
@@ -44,54 +37,24 @@ function flow(spec, width, small) {
   }).join('');
 }
 
-const letters = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
-function pitchPosition(pitch, bottom, spacing) {
-  const match = /^([A-G])([#b♯♭]?)([0-8])$/.exec(String(pitch || ''));
-  if (!match) return null;
-  const degree = Number(match[3]) * 7 + letters[match[1]];
-  return { y: bottom - (degree - 30) * spacing / 2, accidental: match[2].replace('b', '♭').replace('#', '♯') };
-}
-function motion(spec, width, small) {
-  const labels = (spec.labels || []).slice(0, 5), stages = labels.length;
-  if (stages < 2) return '';
-  const top = small ? 30 : 56, spacing = small ? 10 : 14, bottom = top + spacing * 4;
-  const xPosition = i => 55 + (width - 110) * i / (stages - 1);
-  let result = Array.from({length: 5}, (_, i) => ln(22, top + spacing * i, width - 22, top + spacing * i, 'vis-staff')).join('');
-  result += `<path d="${CLEF_PATHS.treble}" transform="${small ? 'translate(14 67) scale(.025 -.025)' : 'translate(12 108) scale(.035 -.035)'}" class="vis-clef"/>`;
-  const lines = Array.isArray(spec.lines) && spec.lines.length ? spec.lines.slice(0, 3) : [{notes:spec.notes || []}];
-  lines.forEach((line, lineIndex) => {
-    const points = (line.notes || []).slice(0, stages).map((note, i) => ({x:xPosition(i), ...pitchPosition(note, bottom, spacing)}));
-    if (points.length !== stages || points.some(p => !Number.isFinite(p.y))) return;
-    const cls = lineIndex === 0 ? 'vis-note-main' : 'vis-note-secondary';
-    points.forEach((point, i) => {
-      if (i) result += arrow(points[i - 1].x + 13, points[i - 1].y, point.x - 14, point.y);
-      if (point.y > bottom + 2) result += ln(point.x - 14, bottom + spacing, point.x + 14, bottom + spacing, 'vis-staff');
-      if (point.y < top - 2) result += ln(point.x - 14, top - spacing, point.x + 14, top - spacing, 'vis-staff');
-      result += `<ellipse cx="${point.x}" cy="${point.y}" rx="${small ? 8 : 11}" ry="${small ? 5.5 : 7}" transform="rotate(-17 ${point.x} ${point.y})" class="${cls}"/>`;
-      if (point.accidental) result += t(point.x - (small ? 17 : 22), point.y + 5, point.accidental, 'vis-accidental');
-    });
-  });
-  labels.forEach((label, i) => {
-    result += t(xPosition(i), small ? 17 : 36, small ? (spec.miniLabels?.[i] || label) : label, small ? 'vis-tiny-heading' : 'vis-heading', 'middle', (width - 110) / (stages - 1) - 8);
-    if (!small && spec.degrees?.[i]) result += t(xPosition(i), 166, spec.degrees[i], 'vis-degree');
-  });
-  if (!small && lines.length > 1) {
-    lines.forEach((line, i) => { if (line.label) result += t(30 + i * 320, 193, (i ? '● ' : '● ') + line.label, i ? 'vis-secondary-key' : 'vis-primary-key', 'start'); });
-  }
-  return result;
-}
-
 function compare(spec, width, small) {
   const panels = (spec.panels || []).slice(0, 4), count = panels.length;
   if (!count) return '';
   const margin = small ? 6 : 16, gap = small ? 7 : 14, w = (width - margin * 2 - (count - 1) * gap) / count;
   const y = small ? 16 : 34, h = small ? 68 : 120;
+  const splitDetail = value => {
+    const words = String(value || '').trim().split(/\s+/);
+    if (String(value || '').length <= 17 || words.length < 2) return [value];
+    const options = Array.from({length: words.length - 1}, (_, i) => [words.slice(0, i + 1).join(' '), words.slice(i + 1).join(' ')]);
+    return options.sort((a, b) => Math.max(...a.map(s => s.length)) - Math.max(...b.map(s => s.length)))[0];
+  };
   return panels.map((panel, i) => {
     const x = margin + i * (w + gap), middle = x + w / 2;
+    const detail = !small && panel.detail ? splitDetail(panel.detail) : [];
     return r(x, y, w, h, i % 2 ? 'vis-block vis-block-alt' : 'vis-block') +
-      t(middle, y + (small ? 27 : 31), small ? panel.miniLabel || panel.label || '' : panel.label || '', small ? 'vis-main-small' : 'vis-main', 'middle', w - 10) +
+      t(middle, y + (small ? 27 : 31), small ? panel.miniLabel || panel.label || '' : panel.label || '', small ? 'vis-main-small' : 'vis-card-heading', 'middle', w - 10) +
       (panel.notes ? t(middle, y + (small ? 51 : 72), small ? panel.miniNotes || panel.notes : panel.notes, small ? 'vis-detail-mini' : 'vis-chord', 'middle', w - 10) : '') +
-      (!small && panel.detail ? t(middle, y + 102, panel.detail, 'vis-detail', 'middle', w - 12) : '');
+      detail.map((part, index) => t(middle, y + (detail.length === 1 ? 102 : 91 + 15 * index), part, 'vis-card-detail')).join('');
   }).join('');
 }
 
@@ -170,10 +133,20 @@ function sequence(spec, width, small) {
   }).join('');
 }
 
-const DRAW = {flow, motion, compare, layers, branch, pivot, enharmonic, sequence, form: layers};
+// Noteheads, accidentals and voice-leading no longer have hand-drawn SVG
+// fallbacks. They must pass through the music notation engine above.
+const DRAW = {flow, compare, layers, branch, pivot, enharmonic, sequence, form: layers};
 
 export function visualHTML(spec, {compact = false} = {}) {
   if (!spec || !ALLOWED.has(spec.kind)) return '';
+  const scoreType = engravingKind(spec);
+  if (scoreType) {
+    const tag = compact ? 'span' : 'figure';
+    return `<${tag} class="lesson-visual ${compact ? 'lesson-visual--mini' : 'lesson-visual--full'} lesson-visual--${spec.kind} lesson-visual--engraved">` +
+      (!compact && spec.title ? `<div class="lesson-visual-title">${escapeHTML(spec.title)}</div>` : '') +
+      `<span class="vis-engraving" data-theory-engraving="${escapeHTML(JSON.stringify(spec))}" data-compact="${compact}"><span class="vis-engraving-wait">Нотная иллюстрация</span></span>` +
+      (!compact && spec.caption ? `<figcaption>${escapeHTML(spec.caption)}</figcaption>` : '') + `</${tag}>`;
+  }
   const width = compact ? 296 : 668;
   let drawing = '';
   try { drawing = DRAW[spec.kind](spec, width, compact); } catch { return ''; }

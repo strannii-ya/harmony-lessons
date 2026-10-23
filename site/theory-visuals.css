@@ -9,7 +9,11 @@
   font-size: 12px;
 }
 .lesson-visual svg { display: block; width: 100%; height: auto; overflow: visible; }
-.lesson-visual svg text { font-family: Inter, 'Segoe UI', Arial, sans-serif; paint-order: stroke; }
+.lesson-visual--engraved .vis-engraving { display: block; width: 100%; }
+.lesson-visual--engraved svg { min-width: 0; max-width: none; overflow: hidden; }
+.lesson-visual--engraved .vis-engraving-wait { display: block; padding: 27px 0; text-align: center; color: #887a69; }
+.lesson-visual--engraved .vis-engraving-error { font-size: 12px; color: #98603d; }
+.lesson-visual svg text { paint-order: stroke; }
 .lesson-visual--mini {
   width: 100%; margin: auto 0 0; padding: 8px 6px 4px;
   background: #f7f1e7; border: 1px solid #e9dfd0; border-radius: 8px;
@@ -38,6 +42,8 @@
 .vis-tiny-heading { fill: #785d3c; font: 600 14px Inter, 'Segoe UI', sans-serif; }
 .vis-label { fill: #745c40; font: 15px Inter, 'Segoe UI', sans-serif; }
 .vis-detail { fill: #7b6a54; font: 13px Inter, 'Segoe UI', sans-serif; }
+.vis-card-heading { fill: #725537; font: 600 14px Georgia, serif; }
+.vis-card-detail { fill: #7b6a54; font: 11px Inter, 'Segoe UI', sans-serif; }
 .vis-detail-mini { fill: #7b6042; font: 15px Georgia, serif; }
 .vis-chord { fill: #755236; font: 22px Georgia, serif; }
 .vis-note-main { fill: #925b38; stroke: #734122; stroke-width: .8; }
@@ -51,8 +57,9 @@
 .vis-cell { fill: #fffcf7; stroke: #d8c6a9; stroke-width: 1.2; }
 .vis-cell-accent { fill: #ebd5b8; stroke: #bc9969; }
 .vis-cell-text { fill: #725132; font: 600 16px Georgia, serif; }
-.vis-cell-text-small { fill: #725132; font: 600 14px Georgia, serif; }
+.vis-cell-text-small { fill: #725132; font: 600 12px Georgia, serif; }
 .vis-enharmonic { fill: #87582f; font: 600 31px Georgia, serif; }
+.theory-voice-arrow { pointer-events: none; }
 @media (max-width: 600px) {
   .lesson-visual--full { margin-inline: -3px; padding: 12px 11px; }
   .lesson-visual--full svg { min-width: 450px; }
