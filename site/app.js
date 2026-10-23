@@ -53,9 +53,8 @@ function reference(){
 function course(){
  $('#breadcrumb').textContent='Мой курс';const complete=state.data.progress.filter(p=>p.completed).length,current=state.data.lessons.find(l=>!progressFor(l.id)?.completed)||state.data.lessons[0];
  let html=`<section class="page-heading"><h1>Курс гармонии</h1><p class="page-count">${complete} / ${state.data.lessons.length} пройдено · ${state.data.exercises.filter(e=>!isGenre(e)).length} упражнений</p></section><div class="resume-row"><span>Урок ${current.position}. ${courseText(current.title)}</span><button data-lesson="${esc(current.id)}">Продолжить →</button></div>`;
- const chapters=[...new Set(state.data.lessons.map(l=>l.chapter))];for(const c of chapters){const ls=state.data.lessons.filter(l=>l.chapter===c);html+=`<div class="section-heading"><h2>${chapterRoman(c)}. ${courseText(ls[0].chapter_title)}</h2><span>${ls.length}</span></div><div class="course-grid">${ls.map(l=>`<button class="course-card" data-lesson="${esc(l.id)}"><span class="card-num">${String(l.position).padStart(2,'0')}</span><h3>${courseText(l.title)}</h3>${visualHTML(l.theory?.visual,{compact:true})}${progressFor(l.id)?.completed?'<span class="status-pill">Пройдено</span>':''}</button>`).join('')}</div>`;}
+ const chapters=[...new Set(state.data.lessons.map(l=>l.chapter))];for(const c of chapters){const ls=state.data.lessons.filter(l=>l.chapter===c);html+=`<div class="section-heading"><h2>${chapterRoman(c)}. ${courseText(ls[0].chapter_title)}</h2></div><div class="course-grid">${ls.map(l=>`<button class="course-card" data-lesson="${esc(l.id)}"><span class="card-num">${String(l.position).padStart(2,'0')}</span><h3>${courseText(l.title)}</h3>${progressFor(l.id)?.completed?'<span class="status-pill">Пройдено</span>':''}</button>`).join('')}</div>`;}
  $('#content').innerHTML=html;
- mountTheoryVisuals($('#content'));
 }
 function figureHTML(figure){
  if(!figure || !Array.isArray(figure.steps) || !figure.steps.length)return '';

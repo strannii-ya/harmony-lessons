@@ -34,3 +34,17 @@ test('card footer, header favorite and text-only navigation are structural, not 
  assert.match(readFileSync('site/modes.js','utf8'),/card-footer mode-footer/);
  assert.match(readFileSync('site/chord-guide.js','utf8'),/card-footer guide-footer/);
 });
+
+test('course overview stays compact and text-only without losing lesson illustrations',()=>{
+ const app=readFileSync('site/app.js','utf8');
+ const course=app.split('function course(){')[1]?.split('function figureHTML(')[0];
+ const scoreCSS=readFileSync('site/score.css','utf8');
+ assert.ok(course,'Course overview renderer must exist');
+ assert.doesNotMatch(course,/visualHTML\(|mountTheoryVisuals\(/);
+ assert.doesNotMatch(course,/\$\{ls\.length\}/);
+ assert.match(course,/class="course-card"/);
+ assert.match(course,/class="status-pill">Пройдено/);
+ assert.match(app,/function theoryHTML\(theory\)[\s\S]*?visualHTML\(theory\.visual\)/);
+ assert.match(scoreCSS,/\.course-card\{min-height:125px;padding:17px 18px\}/);
+ assert.match(scoreCSS,/#content \.course-card\{min-height:112px;padding:15px 16px\}/);
+});
