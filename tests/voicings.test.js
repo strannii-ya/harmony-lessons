@@ -32,6 +32,18 @@ test('I IV V I gets close connected shapes, not a separate root-position jump at
  assert.deepEqual(s.bars.map(b=>b.rhInversion),[0,2,1,0]);
 });
 
+test('cadential K64 remains in second inversion in RH during automatic voice-leading',()=>{
+ for(const mode of ['major','minor'])for(const tonic of KEYS[mode]){
+  const progression=mode==='major'?['I','IV6','K64','V7','I']:['i','iv6','K64','V7','i'];
+  const score=compileExercise(exercise(progression),{tonic,mode,pattern:'chords',inversions:true});
+  const cadential=score.bars[2];
+  assert.equal(cadential.inversion,2);
+  assert.equal(cadential.rhInversion,2);
+  assert.equal(mod(cadential.rhPosition[0].midi),mod(cadential.bass.midi));
+  assert.equal(cadential.rhPosition.length,3);
+ }
+});
+
 test('all supported keys, textures, seventh qualities and authored bass contours preserve pitches and timings',()=>{
  const examples=[
   exercise(['I','IV','V','I']),
