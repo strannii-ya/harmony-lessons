@@ -7,9 +7,9 @@ create table if not exists public.members (
  user_id uuid primary key references auth.users(id) on delete cascade
 );
 create table if not exists public.lessons (
- id integer primary key check(id between 1 and 23),
+ id integer primary key check(id between 1 and 24),
  owner_id uuid not null references public.members(user_id),
- position integer not null unique check(position between 1 and 23),
+ position integer not null unique check(position between 1 and 24),
  chapter integer not null check(chapter between 1 and 7),
  chapter_title text not null, title text not null, subtitle text not null default '',
  goal text not null, preparation jsonb not null default '[]', topics jsonb not null default '[]',

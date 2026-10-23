@@ -58,7 +58,7 @@ export function parseChord(symbol,tonic='C',mode='major'){
  if(inversion)name+='/'+noteName(bass);
  return {symbol,degree:degree+1,quality,seventh,root:rootIn4,tones,bass,inversion,name,cadential};
 }
-function bassDegree(s,tonic){const m=/^([b#]*)([1-7])$/.exec(normalizeSymbol(s));if(!m)throw new Error('Неверная ступень баса');const t=pitch(tonic),d=+m[2]-1;const a=[...m[1]].reduce((v,c)=>v+(c==='#'?1:-1),0);return at(t.letter+d,36+mod(t.midi+SCALE[d]+a));}
+export function bassDegree(s,tonic){const m=/^([b#]*)([1-7])$/.exec(normalizeSymbol(s));if(!m)throw new Error('Неверная ступень баса');const t=pitch(tonic),d=+m[2]-1;const a=[...m[1]].reduce((v,c)=>v+(c==='#'?1:-1),0);return at(t.letter+d,36+mod(t.midi+SCALE[d]+a));}
 export function compile(progression,options={}){
  const tonic=options.tonic||'C',mode=options.mode||'major',pattern=options.pattern||'chords';
  if(!Array.isArray(progression)||!progression.length||progression.length>64)throw new Error('Нужно от 1 до 64 аккордов');

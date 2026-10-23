@@ -9,6 +9,7 @@ function label(parent,x,y,value,size=13,extra={}){parent.append(node('text',{x,y
 function annotateHand(group,model){
  model.notes.forEach((note,i)=>{
   const event=model.events[i];
+  if(event.rest)return;
   note.noteHeads.forEach((head,j)=>{
    const headGroup=group.querySelector('#'+CSS.escape('vf-'+head.getAttribute('id')));
    const el=headGroup?.querySelector(':scope > path');if(!el)throw new Error('Головка ноты не отрисована');
@@ -47,7 +48,7 @@ function paint(container,score,forcedWidth,options={}){
  svg.setAttribute('data-renderer','vexflow-bravura');svg.setAttribute('data-note-scale',scale);
  svg.setAttribute('data-rh-voicings',score.rightHandVoicings===true);svg.setAttribute('data-key-label',keyLabel(score.tonic,score.mode));
  svg.setAttribute('data-portrait-layout',portrait);svg.setAttribute('data-layout-width',plan.width);svg.setAttribute('data-bass-visible',plan.showBass);
- svg.setAttribute('aria-label',score.bars.map(b=>`${b.symbol}: ${b.tones.map(noteName).join(', ')}${plan.showBass?'; бас '+noteName(b.bass):''}`).join('. '));
+ svg.setAttribute('aria-label',score.bars.map(b=>`${b.symbol}: ${b.tones.map(noteName).join(', ')}${plan.showBass?'; бас '+(b.bassEvents?b.bassEvents.map(e=>e.rest?'пауза':e.notes.map(noteName).join(' ')).join(', '):noteName(b.bass)):''}`).join('. '));
  svg.prepend(node('title',{},score.bars.map(b=>b.name||b.symbol).join(' — ')));
  let cursor=8;
  plan.rows.forEach((row,ri)=>{

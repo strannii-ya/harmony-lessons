@@ -2,7 +2,7 @@
 import { VF } from './vexflow.js';
 import { asciiName, keyPitches } from './music.js';
 import { staffY, sameKey } from './score-layout.js';
-const DURATIONS=new Map([[4,'w'],[3,'h'],[2,'h'],[1,'q'],[.5,'8']]);
+const DURATIONS=new Map([[4,'w'],[3,'h'],[2,'h'],[1,'q'],[1.5,'q'],[.5,'8']]);
 const SIGNS=new Map([[-2,'bb'],[-1,'b'],[0,'n'],[1,'#'],[2,'##']]);
 /** Shared by the planner and renderer so larger labels reserve real horizontal and vertical room. */
 export const SCORE_LABEL_STYLE=Object.freeze({symbolSize:21,nameSize:18,symbolY:36,nameY:62,topRoom:106});
@@ -25,9 +25,9 @@ export function makeVoice(events,bar,clef){
  const state=new Map(),signature=new Map(keyPitches(bar.tonic,bar.mode).map(n=>[n.letter,n.alter]));
  const notes=events.map(event=>{
   const duration=DURATIONS.get(event.duration);
-  if(!duration||!event.notes?.length)throw new Error('Неподдерживаемая длительность или пустой аккорд');
-  const note=new VF.StaveNote({keys:event.notes.map(vexKey),duration,clef,auto_stem:true,dots:event.duration===3?1:0});
-  if(event.duration===3)VF.Dot.buildAndAttach([note],{all:true});
+  if(!duration||(!event.rest&&!event.notes?.length))throw new Error('Неподдерживаемая длительность или пустой аккорд');
+  const note=new VF.StaveNote({keys:event.rest?['d/3']:event.notes.map(vexKey),duration:duration+(event.rest?'r':''),clef,auto_stem:true});
+  if(event.duration===3||event.duration===1.5)VF.Dot.buildAndAttach([note],{all:true});
   // Validity is per written pitch and octave and resets at each bar line.
   // VexFlow determines the signs' engraved form, columns and optical spacing.
   event.notes.forEach((n,i)=>{
@@ -41,7 +41,7 @@ export function makeVoice(events,bar,clef){
  return {voice,notes,beams,events,clef};
 }
 export function prepareMeasure(bar,{first=false,previous=null,showBass=false,showMeter=false,showLabels=true,compact=false}={}){
- const right=makeVoice(bar.rh,bar,'treble'),left=showBass?makeVoice([bar.left],bar,'bass'):null;
+ const right=makeVoice(bar.rh,bar,'treble'),left=showBass?makeVoice(bar.bassEvents||[bar.left],bar,'bass'):null;
  const changed=previous&&!sameKey(previous,bar);
  const staves=[new VF.Stave(0,0,300),...(left?[new VF.Stave(0,130,300)]:[])];
  staves.forEach((stave,i)=>{
@@ -90,7 +90,7 @@ export function planEngraving(score,width,options={}){
   const labelRoom=options.showLabels===false?32:SCORE_LABEL_STYLE.topRoom;
   r.treble=Math.max(labelRoom,labelRoom-Math.min(...right));
   if(showBass){
-   const left=r.measures.flatMap(m=>m.bar.left.notes.map(n=>staffY(n,true)));
+   const left=r.measures.flatMap(m=>(m.bar.bassEvents||[m.bar.left]).flatMap(e=>e.notes.map(n=>staffY(n,true))));
    r.bass=r.treble+Math.max(110,Math.max(...right)-Math.min(...left)+75);
    r.bottom=r.bass+Math.max(65,Math.max(...left)+42);
   }else{r.bass=null;r.bottom=r.treble+Math.max(65,Math.max(...right)+42);}
